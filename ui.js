@@ -758,7 +758,6 @@ function seatBarHTML(rows){return`<div class="seatbar">${rows.map(r=>`<div style
 function renderCampaign(){
   const gov=S.meta.phase==="government";
   const due=gov?Math.max(0,58-(S.meta.month-S.meta.termStart)):Math.max(0,S.opp.electionDue);
-  const target=S.flags.targetRegion;
   const P=E.projectElection(S);
   const CA=E.coalitionAnalysis(P.rows);
   const HCA=S.house?E.coalitionAnalysis(S.house.rows):null;
@@ -781,13 +780,13 @@ function renderCampaign(){
       <div class="panelbox slim"><h4>Swing vs the House</h4><div class="cab">
        ${P.rows.filter(r=>r.key!=="ni").map(r=>{const h=S.house?(S.house.rows.find(x=>x.key===r.key)||{seats:0}).seats:0;const d2=r.seats-h;
          return`<div class="row2"><span style="color:${r.c}">${r.n.replace(" (you)"," — you")}</span><span class="num ${d2>0?"good":d2<0?"bad":"dim"}">${d2>0?"+":""}${d2}</span></div>`}).join("")}
-      </div>${target?`<div class="dim small" style="margin-top:8px">Targeting <b>${target.toUpperCase()}</b> — extra swing banked there.</div>`:""}</div></div></div>
+      </div></div></div></div>
    </div>
    <div>
     <div class="panelbox"><h4>The clock</h4><div class="cab">
      <div class="row2"><span>Next election</span><span class="num warn">within ${due} months</span></div>
      ${S.opp?`<div class="row2"><span>Campaign fund</span><span class="num">£${fmt1(S.opp.warchest)}m</span></div>`:""}
-     <div class="row2"><span>Target region</span><span class="num">${target?target.toUpperCase()+" ✓":"none"}</span></div>
+     
     </div></div>
 
     <div class="panelbox"><h4>MANIFESTO POSITIONS — where you stand · ▲ marks public opinion</h4>
@@ -801,8 +800,6 @@ function renderCampaign(){
        ?'<button class="btn small" id="bt-manifesto">Publish manifesto positions</button>'
        :'<button class="btn small" id="bt-positions">Set the government’s line · 3 capital</button>'}
       <span class="dim small">Sliders save instantly. Interviews and PMQs also move them — what you say in public IS your position.</span></div></div>
-    <div class="panelbox"><h4>Target a region — extra effort where it matters</h4>
-     <div class="opts">${ELECT_REGIONS.map(([k,label,seats])=>`<button class="choice small ${target===k?"selz":""}" data-tr="${k}">${label} <small>${seats} seats${target===k?" · TARGETED":""}</small></button>`).join("")}</div></div>
     ${gov?`<div class="panelbox"><h4>Go early?</h4><p class="body dim small">The projection in panel 3 is your honest odds. There's no taking it back.</p>
      <div class="menu tight"><button class="btn red small" id="bt-snap2">Call an election now · 20 capital</button></div></div>`
     :`<div class="panelbox"><h4>Fundraising</h4><p class="body dim small">Dinners, raffles, a man named Clive with opinions about crypto.</p>
@@ -820,7 +817,6 @@ function renderCampaign(){
     if(S.pols.capital<3){toast("Not enough capital.");return}
     E.applyEffects(S,{capital:-3});
     toast("<b>LINE SET</b> · the lobby is briefed");renderAll();save()};
-  $$("#tab-campaign [data-tr]").forEach(b2=>b2.onclick=()=>{S.flags.targetRegion=b2.dataset.tr;toast("<b>TARGETED</b> · extra swing in "+b2.dataset.tr.toUpperCase());renderCampaign();save()});
   const sn=$("#bt-snap2");if(sn)sn.onclick=()=>{
     if(S.pols.capital<20){toast("Not enough capital (need 20).");return}
     modal(`<h3>Call the election?</h3><div class="body">${CA.text}. Once you ask the country, there's no taking it back.</div>
@@ -958,12 +954,17 @@ function renderWhips(){
       <div class="menu tight"><button class="btn ghost small" data-riot="${i}">Read the riot act · 5 cap</button></div></div>`}).join("")}
    </div>
    <div><div class="seclbl">TOOLS</div>
-    <div class="panelbox"><h4>Loyalty honours</h4><p class="body dim small">Gongs with a suspiciously high correlation to division lists. Unity +5, a little grubby.</p>
-     <div class="menu tight"><button class="btn ghost small" id="wh-hon">Issue the list · 8 cap</button></div></div></div></div>`;
+    ${S.meta.phase==="government"
+      ?`<div class="panelbox"><h4>Loyalty honours</h4><p class="body dim small">Gongs with a suspiciously high correlation to division lists. Unity +5, a little grubby.</p>
+       <div class="menu tight"><button class="btn ghost small" id="wh-hon">Issue the list · 8 cap</button></div></div>`
+      :`<div class="panelbox"><h4>Frontbench promises</h4><p class="body dim small">You have no gongs to give — but you can promise who sits where after the win. Unity +5, and everyone keeps the receipt.</p>
+       <div class="menu tight"><button class="btn ghost small" id="wh-jobs">Make the promises · 8 cap</button></div></div>`}</div></div>`;
   $$("#tab-whips [data-riot]").forEach(b=>b.onclick=()=>{const b4=snapStats();
     const r=E.whipAction(S,"riot",+b.dataset.riot);if(!r.ok){toast(r.msg||"Cannot.");return}
     toast(r.backfired?"<b>IT LEAKED</b>":"<b>MESSAGE DELIVERED</b>");toastDiff(b4);renderAll();save()});
-  $("#wh-hon").onclick=()=>{const b4=snapStats();const r=E.whipAction(S,"honours",0);
+  const wh=$("#wh-hon");if(wh)wh.onclick=()=>{const b4=snapStats();const r=E.whipAction(S,"honours",0);
+    if(!r.ok){toast(r.msg||"Cannot.");return}toastDiff(b4);renderAll();save()};
+  const wj=$("#wh-jobs");if(wj)wj.onclick=()=>{const b4=snapStats();const r=E.whipJobs(S);
     if(!r.ok){toast(r.msg||"Cannot.");return}toastDiff(b4);renderAll();save()};
 }
 
@@ -971,13 +972,13 @@ function renderWhips(){
 function renderIntel(){
   const worst=Object.entries(S.world.regions).filter(([k])=>k!=="uk").sort((a,b)=>a[1].rel-b[1].rel)[0];
   $("#tab-intel").innerHTML=`<div class="duo">
-   <div><div class="seclbl">THE INTELLIGENCE PICTURE</div>
+   <div><div class="seclbl">${S.meta.phase==="government"?"THE INTELLIGENCE PICTURE — JIC assessment":"THE PICTURE FROM OUTSIDE — briefings on privy-council terms"}</div>
     <div class="panelbox"><h4>This month's assessment</h4>
      <p class="body">Principal concern: <b>${REGIONS[worst[0]].n}</b> (relations ${Math.round(worst[1].rel)}). ${S.world.war?"Wartime tasking takes priority — agency capacity is stretched.":"Capacity available for special tasking."} ${S.world.doom?`<span class="bad">Strategic warning level: ${Math.round(S.world.doom)}/100.</span>`:""}</p></div>
-    <div class="panelbox"><h4>SPECIAL TASKINGS</h4><div class="opts">
-     <button class="choice" data-op="dossier">Obtain the opposition's playbook<small>Their next month's grid on your desk · 6 capital</small></button>
-     <button class="choice" data-op="sweep">Counter-espionage sweep<small>Standing +2 · small chance of catching a mole · 5 capital</small></button>
-     <button class="choice" data-op="kompromat">Open the kompromat file<small>50% devastating · 35% nothing · 15% it blows up on YOU · 9 capital</small></button>
+    <div class="panelbox"><h4>${S.meta.phase==="government"?"SPECIAL TASKINGS — the agencies":"THE OPPOSITION RESEARCH DESK — private, deniable"}</h4><div class="opts">
+     <button class="choice" data-op="dossier">${S.meta.phase==="government"?"Obtain the opposition's playbook":"Commission opposition research"}<small>${S.meta.phase==="government"?"Their next month's grid on your desk":"A private firm maps the government's weak spots"} · 6 capital</small></button>
+     ${S.meta.phase==="government"?'<button class="choice" data-op="sweep">Counter-espionage sweep<small>Standing +2 · small chance of catching a mole · 5 capital</small></button>':""}
+     <button class="choice" data-op="kompromat">${S.meta.phase==="government"?"Open the kompromat file":"Open the black book"}<small>50% devastating · 35% nothing · 15% it blows up on YOU · 9 capital</small></button>
     </div></div></div>
    <div><div class="seclbl">WORLD LEADERS — personal rapport</div>
     <div class="panelbox"><div class="cab">${Object.keys(REGIONS).filter(k=>k!=="uk"&&k!=="southatl").map(k=>
@@ -991,6 +992,20 @@ function renderIntel(){
 /* ---------- LORDS ---------- */
 function renderLords(){
   const peers=(S.lords&&S.lords.peers)||0;
+  if(S.meta.phase!=="government"){
+    $("#tab-lords").innerHTML=`<div class="duo">
+     <div><div class="seclbl">THE HOUSE OF LORDS — enemy territory, friendly benches</div>
+      <div class="panelbox"><h4>The red-bench resistance</h4>
+       <p class="body">You cannot create peers — that power belongs to the Prime Minister. But the government has no Lords majority, and your peers know every procedural knife in the drawer.</p>
+       <div class="menu tight"><button class="btn ghost small" id="ld-obs">Ambush a government bill · 4 cap</button></div></div>
+      <div class="panelbox"><h4>Honours nominations</h4>
+       <p class="body dim small">By convention you may nominate a handful of names to the PM's list. It buys goodwill in your own ranks, nothing more.</p></div></div>
+     <div><div class="seclbl">WHY IT MATTERS</div>
+      <div class="panelbox"><p class="body">Every ambush costs the government a news cycle and a slice of approval. Win power, and the peer-making pen is yours.</p></div></div></div>`;
+    $("#ld-obs").onclick=()=>{const b4=snapStats();const r=E.lordsObstruct(S);
+      if(!r.ok){toast(r.msg||"Cannot.");return}toastDiff(b4);renderAll();save()};
+    return;
+  }
   $("#tab-lords").innerHTML=`<div class="duo">
    <div><div class="seclbl">THE HOUSE OF LORDS</div>
     <div class="panelbox"><h4>Your working peers</h4>
@@ -1035,17 +1050,28 @@ function renderEconLab(){
      <div class="row2"><span>Approval → your poll share</span><span class="num dim">${S.meta.phase==="government"?"24 + 0.42×approval":"anchored to the gov's failure"}</span></div>
      <div class="row2"><span>Markets ${Math.round(E2.trust)}/100 → gilt premium</span><span class="num ${E2.trust<40?"bad":"dim"}">+${fmt1((60-Math.min(60,E2.trust))/25)}%</span></div>
     </div><p class="dim small" style="margin-top:8px">Every arrow is computed from the live engine, not decoration. Drop markets under 25 and the gilt strike forces an emergency budget.</p></div>
-    <div class="panelbox"><h4>MONETARY LEVERS</h4><div class="opts">
+    ${S.meta.phase==="government"?`<div class="panelbox"><h4>MONETARY LEVERS</h4><div class="opts">
      <button class="choice" id="el-lean">Lean on the Governor<small>Rates −0.5 now · markets −8 · inflation risk · 8 capital</small></button>
      <button class="choice" id="el-qe">Request QE<small>Only in a crisis (markets &lt;40) · markets +9, inflation +0.5 · 6 capital</small></button>
      <button class="choice" id="el-hawk">Appoint a HAWK Governor<small>Bank fights inflation harder · markets +6 · 8 capital</small></button>
      <button class="choice" id="el-dove">Appoint a DOVE Governor<small>Bank protects growth · markets −4 · 8 capital</small></button>
-    </div>${S.flags.govHawk?'<p class="small warn">Current Governor: HAWK</p>':S.flags.govDove?'<p class="small warn">Current Governor: DOVE</p>':""}</div>
+    </div>${S.flags.govHawk?'<p class="small warn">Current Governor: HAWK</p>':S.flags.govDove?'<p class="small warn">Current Governor: DOVE</p>':""}</div>`
+    :`<div class="panelbox"><h4>THE OPPOSITION'S ECONOMIC WEAPONS</h4><div class="opts">
+     <button class="choice" id="el-attack">Savage the record on the airwaves<small>Government approval −1.2 · press +1 · 4 capital</small></button>
+     <button class="choice" id="el-pledge">The Iron Pledge — independent audit of every plan<small>Markets +4, polls +0.5 · once per career · 3 capital</small></button>
+    </div><p class="dim small">The Bank doesn't take your calls. The charts are public; the dials belong to the government — until you take it.</p></div>`}
    </div></div>`;
-  $("#el-lean").onclick=()=>{const b4=snapStats();const r=E.leanOnBank(S);if(!r.ok){toast("Not enough capital.");return}toastDiff(b4);renderAll();save()};
-  $("#el-qe").onclick=()=>{const b4=snapStats();const r=E.requestQE(S);if(!r.ok){toast(r.msg);return}toastDiff(b4);renderAll();save()};
-  $("#el-hawk").onclick=()=>{const r=E.appointGovernor(S,"hawk");if(!r.ok){toast(r.msg);return}renderAll();save()};
-  $("#el-dove").onclick=()=>{const r=E.appointGovernor(S,"dove");if(!r.ok){toast(r.msg);return}renderAll();save()};
+  const elL=$("#el-lean");if(elL)elL.onclick=()=>{const b4=snapStats();const r=E.leanOnBank(S);if(!r.ok){toast(r.msg||"Not enough capital.");return}toastDiff(b4);renderAll();save()};
+  const elQ=$("#el-qe");if(elQ)elQ.onclick=()=>{const b4=snapStats();const r=E.requestQE(S);if(!r.ok){toast(r.msg);return}toastDiff(b4);renderAll();save()};
+  const elH=$("#el-hawk");if(elH)elH.onclick=()=>{const r=E.appointGovernor(S,"hawk");if(!r.ok){toast(r.msg);return}renderAll();save()};
+  const elD=$("#el-dove");if(elD)elD.onclick=()=>{const r=E.appointGovernor(S,"dove");if(!r.ok){toast(r.msg);return}renderAll();save()};
+  const elA=$("#el-attack");if(elA)elA.onclick=()=>{
+    if(S.pols.capital<4){toast("Not enough capital.");return}
+    const b4=snapStats();E.applyEffects(S,{capital:-4,gov:{app:-1.2},media:1});
+    E.frontPage(S,"THE SHADOW CHANCELLOR DRAWS BLOOD","Your economy attack lands on every bulletin. The Treasury issues a rebuttal that everyone reads as confirmation.");
+    toastDiff(b4);renderAll();save()};
+  const elP=$("#el-pledge");if(elP)elP.onclick=()=>{const b4=snapStats();const r=E.fiscalPledge(S);
+    if(!r.ok){toast(r.msg||"Cannot.");return}toastDiff(b4);renderAll();save()};
 }
 
 /* ---------- core flow ---------- */
@@ -1180,7 +1206,7 @@ function openElection(it){
       modal(`<div class="lbl gold">${snap?"SNAP ELECTION":"GENERAL ELECTION"} · week ${step+1} of 5</div>
        <h3>${c.q}</h3>${pollsSVG()}
        <div class="opts">${c.o.map((o,i)=>`<button class="choice" data-i="${i}">${o[0]}</button>`).join("")}</div>
-       <div class="small dim" style="margin-top:8px">Campaign strength: <b class="num">${fmt1(boost)}</b>${S.flags.targetRegion?" · targeting "+S.flags.targetRegion.toUpperCase():""}</div>`,true);
+       <div class="small dim" style="margin-top:8px">Campaign strength: <b class="num">${fmt1(boost)}</b></div>`,true);
       $$("#modal .choice").forEach(b=>b.onclick=()=>{boost+=c.o[+b.dataset.i][1];step++;pushPoll();stepFn()});
       return}
     const R=E.computeElection(S,boost+(S.opp&&S.opp.warchest>6?1:0),{shock:true});

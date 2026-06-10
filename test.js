@@ -72,6 +72,30 @@ for(let i=0;i<30;i++){
    if(out==="mad"&&!(N2.flags.mad&&N2.meta.over))throw new Error("mad ending state wrong");}
  if(out!=="mad")throw new Error("MAD never triggered in 30 strikes (p=0.6 each)");
  console.log("war path: declare->brink->stand-down OK · MAD ending OK");}
+// phase-power guards + per-game rival variation
+{const O=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'guards',name:'G'});
+ O.pols.capital=90;
+ for(const[fn,args]of[["appointPeers",[]],["requestQE",[]],["appointGovernor",["hawk"]],["leanOnBank",[]]])
+   if(E[fn](O,...args).ok)throw new Error(fn+" allowed in opposition");
+ if(E.intelOp(O,"sweep").ok)throw new Error("sweep allowed in opposition");
+ if(E.whipAction(O,"honours",0).ok)throw new Error("honours allowed in opposition");
+ if(!E.whipJobs(O).ok)throw new Error("whipJobs refused in opposition");
+ if(!E.lordsObstruct(O).ok)throw new Error("lordsObstruct refused in opposition");
+ if(!E.fiscalPledge(O).ok)throw new Error("fiscalPledge refused in opposition");
+ const Gv=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'guards2',name:'G'});
+ Gv.pols.capital=90;
+ if(E.whipJobs(Gv).ok)throw new Error("whipJobs allowed in government");
+ if(E.lordsObstruct(Gv).ok)throw new Error("lordsObstruct allowed in government");
+ if(!E.appointPeers(Gv).ok)throw new Error("appointPeers refused in government");
+ const runA=E.newGame({party:'con',bg:'lifer',scenario:'real',difficulty:'standard',seed:'varA',name:'V'});
+ const runB=E.newGame({party:'con',bg:'lifer',scenario:'real',difficulty:'standard',seed:'varB',name:'V'});
+ for(let i=0;i<24;i++){[runA,runB].forEach(X=>{X.flags['pmq'+X.meta.month]=true;X.flags['bud'+X.year]=true;E.tick(X)})}
+ const aiKeys=['lab','lib','ref','grn'];
+ const cross=aiKeys.reduce((a,k)=>a+Math.abs(runA.polls[k]-runB.polls[k]),0);
+ if(cross<3)throw new Error("rival storylines identical across seeds: "+cross.toFixed(1));
+ const moved=aiKeys.some(k=>Math.abs(runA.polls[k]-(({lab:19,lib:12,ref:25,grn:14})[k]))>2);
+ if(!moved)throw new Error("no rival party moved materially in 24 months");
+ console.log("phase guards OK · rival variation across seeds:",cross.toFixed(1),"pts");}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);

@@ -136,7 +136,6 @@ function click(el, what) {
     click($('#gametabs button[data-t="office"]'), "leave campaign");
     click($('#gametabs button[data-t="campaign"]'), "return to campaign");
     assert(parseFloat($$("#tab-campaign [data-st]")[0].value)>=1.4, "stance slider saved instantly");
-    click($$("#tab-campaign [data-tr]")[1], "target region");
 
     // press: full TV interview, answering in quotes
     click($('#gametabs button[data-t="media"]'), "press tab");
@@ -236,6 +235,17 @@ function click(el, what) {
     assert(q("#scr-game").classList.contains("on"), "opp game on");
     for(let p=0;p<8&&q("#modal").classList.contains("on");p++){const n=q("#primer-next");if(n)click2(n,"opp primer");else break;await sleep(30);}
     assert(/Leader of the Opposition/.test(q("#hud-name").textContent), "LOTO label");
+    // phase logic: opposition Lords/EconLab/Intel are different rooms
+    click2(q('#gametabs button[data-t="lords"]'), "opp lords");
+    assert(/cannot create peers/i.test(q("#tab-lords").textContent), "opposition cannot appoint peers");
+    assert(q("#ld-obs"), "opposition can ambush bills");
+    click2(q('#gametabs button[data-t="econlab"]'), "opp econ lab");
+    assert(!q("#el-qe"), "no QE lever in opposition");
+    assert(q("#el-pledge"), "opposition has the Iron Pledge");
+    assert(qq("#tab-econlab .econchart").length >= 3, "charts still public in opposition");
+    click2(q('#gametabs button[data-t="intel"]'), "opp intel");
+    assert(/RESEARCH DESK/i.test(q("#tab-intel").textContent), "opposition research desk, not the agencies");
+    assert(qq("#tab-intel [data-op]").length === 2, "no counter-espionage sweep in opposition");
     click2(q('#gametabs button[data-t="treasury"]'), "opp treasury");
     assert(q("#bt-platform"), "platform button (opposition treasury)");
     const vs=q("#sl-vat"); vs.value="23"; vs.dispatchEvent(new w2.Event("input",{bubbles:true}));
