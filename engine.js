@@ -86,6 +86,7 @@ function rehydrate(S){ // after JSON load
   if(!S.stance)try{initStances(S)}catch(_e){}
   if(!S.polls){S.hist=S.hist||{};initPolls(S)}
   if(!S.partyRel)S.partyRel={};
+  if(!S.policy)S.policy={};
   if(!S.pollDrift){S.pollBase={...REAL_POLLS_NOW};S.pollDrift={};S.pollVol={};for(const k of POLL_PARTIES){S.pollDrift[k]=(S.rng()*2-1)*0.22;S.pollVol[k]=0.3+S.rng()*0.5;}}
   Object.defineProperty(S,"majority",{get(){return this.party.seats*2-650},configurable:true});
   Object.defineProperty(S,"moy",{get(){return (this.meta.startMon+this.meta.month)%12},configurable:true});
@@ -150,14 +151,14 @@ function tickPolls(S){
   const base=S.pollBase;
   const tgt={};
   if(S.meta.phase==="government"){
-    tgt[mine]=clamp(24+0.42*S.pols.approval+stanceBonus(S),16,50);
+    tgt[mine]=clamp(S.pollBase[mine]+(S.pols.approval-45)*0.35+stanceBonus(S),10,50);
     const riv=PARTIES[mine].rival;
-    tgt[riv]=clamp(27+(46-tgt[mine])*0.55+(S.pols.oppStr-50)*0.25,14,46);
+    tgt[riv]=clamp(S.pollBase[riv]+(45-S.pols.approval)*0.18+(S.pols.oppStr-50)*0.20,8,46);
     for(const k of POLL_PARTIES)if(tgt[k]===undefined&&k!=="snp")tgt[k]=base[k]||8;
   }else{
     const G=S.opp.gov;
-    tgt[G.party]=clamp(24+0.30*G.approval-G.fatigue*0.5,12,48);
-    tgt[mine]=clamp(basePoll(S)+(42-G.approval)*0.5+(S.pols.approval-42)*0.35+S.mediaIndex/9+stanceBonus(S),8,52);
+    tgt[G.party]=clamp(S.pollBase[G.party]+(G.approval-30)*0.30-(G.fatigue-2.2)*0.5,8,45);
+    tgt[mine]=clamp(S.pollBase[mine]+(30-G.approval)*0.30+(S.pols.approval-42)*0.25+S.mediaIndex/10+stanceBonus(S),5,52);
     for(const k of POLL_PARTIES)if(tgt[k]===undefined&&k!=="snp")tgt[k]=base[k]||8;
   }
   // Restore Britain feeds on Reform's flank and migration anger
@@ -444,6 +445,7 @@ function drawCard(S){
     if(S.flags.donorBomb&&(c.id==="peerages"||c.id==="scandal_money"))w*=3;
     if(S.flags.byCurse&&(c.id==="byelection"||c.id==="o_byelect"))w*=2.5;
     if(S.flags.royalMoment&&c.id==="honours_row")w*=4;
+    if(S.policy&&S.policy.lordselect&&(c.id==="lords_block"||c.id==="honours_row"||c.id==="peerages"))w=0;
     tw+=w;return w});
   if(S.rng()<0.45){const g=genEvent(S);if(g)return g}
   let x=S.rng()*tw;
@@ -597,6 +599,7 @@ function swapMinister(S,roleIdx,benchIdx){
 
 /* ---------- the lords, the whips, the spooks ---------- */
 function appointPeers(S){
+  if(S.policy&&S.policy.lordselect)return{ok:false,msg:"You abolished the appointed House. The Senate is elected now — there is no patronage pen."};
   if(S.meta.phase!=="government")return{ok:false,msg:"Peerages flow from the Prime Minister. You are not the Prime Minister. Yet."};
   if(S.pols.capital<6)return{ok:false,msg:"Not enough capital."};
   applyEffects(S,{capital:-6,sleaze:2});
@@ -650,6 +653,7 @@ function whipJobs(S){ // opposition: promise frontbench jobs
   return{ok:true};
 }
 function lordsObstruct(S){
+  if(S.policy&&S.policy.lordselect)return{ok:false,msg:"The old red-bench guerrilla war died with the appointed House."};
   if(S.meta.phase==="government")return{ok:false,msg:"You don't ambush your own bills."};
   if(S.pols.capital<4)return{ok:false,msg:"Not enough capital."};
   applyEffects(S,{capital:-4,gov:{app:-1.2},poll:0.4});
@@ -716,6 +720,12 @@ function computeDivision(S,bill,whipped){
   const noes=650-S.party.seats-18-(S.flags.minority?partner:0)+rebels*0+oppFor;
   return{ayes,noes:clamp(noes,0,640),rebels,rebelNames,pass:ayes>noes};
 }
+function applyPolicy(S,billId){
+  S.policy=S.policy||{};S.policy[billId]=true;
+  if(billId==="lordselect"){S.lords={peers:0};log(S,"The appointed Lords is abolished — all patronage peers dissolved");}
+  if(billId==="votes16"&&S.pollBase){S.pollBase.grn=clamp(S.pollBase.grn+0.7,3,34);
+    S.pollBase.lab=clamp(S.pollBase.lab+0.4,3,34);S.pollBase.ref=clamp(S.pollBase.ref-0.4,3,34);}
+}
 function enactBill(S,billId,whipped){
   const bill=BILLS.find(b=>b.id===billId);
   if(!bill||S.usedBills.includes(billId))return{ok:false};
@@ -724,7 +734,7 @@ function enactBill(S,billId,whipped){
   applyEffects(S,{capital:-cost});
   const div=computeDivision(S,bill,whipped);
   S.usedBills.push(billId);
-  if(div.pass){S.score.billsPassed++;applyEffects(S,bill.fx);applyIdeo(S,bill.ideo);
+  if(div.pass){S.score.billsPassed++;applyEffects(S,bill.fx);applyIdeo(S,bill.ideo);applyPolicy(S,billId);
     frontPage(S,bill.quip,`${bill.n} passes ${div.ayes}–${div.noes}${div.rebels?` despite ${div.rebels} rebels`:""}. ${bill.desc}`);
     log(S,"PASSED: "+bill.n+" ("+div.ayes+"–"+div.noes+")");}
   else{applyEffects(S,{app:-3,unity:-5,capital:-4});
@@ -928,7 +938,7 @@ function enactOppBill(S,billId){
   const ayes=S.party.seats+symp+rebels;
   const noes=650-18-ayes;
   const pass=ayes>noes;
-  if(pass){S.score.billsPassed++;applyEffects(S,bill.fx);applyIdeo(S,bill.ideo);
+  if(pass){S.score.billsPassed++;applyEffects(S,bill.fx);applyIdeo(S,bill.ideo);applyPolicy(S,billId);
     applyEffects(S,{poll:2.2,capital:10,gov:{app:-3}});
     frontPage(S,"THE OPPOSITION WRITES THE LAW",`${bill.n} passes ${ayes}–${noes} over the government's dead body — ${rebels} of their own MPs rebelled. Humiliation is too small a word.`);
     log(S,"PMB PASSED: "+bill.n)}

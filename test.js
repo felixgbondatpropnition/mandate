@@ -96,6 +96,36 @@ for(let i=0;i<30;i++){
  const moved=aiKeys.some(k=>Math.abs(runA.polls[k]-(({lab:19,lib:12,ref:25,grn:14})[k]))>2);
  if(!moved)throw new Error("no rival party moved materially in 24 months");
  console.log("phase guards OK · rival variation across seeds:",cross.toFixed(1),"pts");}
+// polls stay anchored to reality absent performance shifts
+{const P1=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'anchor1',name:'A'});
+ for(let i=0;i<12;i++){P1.flags['pmq'+P1.meta.month]=true;P1.flags['bud'+P1.year]=true;E.tick(P1)}
+ if(P1.polls.lab>26)throw new Error("AI Labour ballooned to "+P1.polls.lab.toFixed(1)+" in 12 quiet months");
+ const P2=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'anchor2',name:'A'});
+ for(let i=0;i<12;i++){P2.flags['pmq'+P2.meta.month]=true;P2.flags['bud'+P2.year]=true;E.tick(P2)}
+ if(P2.polls.lab>27)throw new Error("player Labour ballooned to "+P2.polls.lab.toFixed(1)+" without earning it");
+ const NW=E.newGame({party:'lab',bg:'soldier',scenario:'real',difficulty:'standard',seed:'anywar',name:'A'});
+ const dw=E.declareWar(NW,'mideast');
+ if(!dw.ok)throw new Error("cannot declare war on a non-major: "+dw.msg);
+ if(NW.world.war.ww)throw new Error("non-major war wrongly flagged ww");
+ console.log("poll anchors hold (AI lab "+P1.polls.lab.toFixed(1)+", player lab "+P2.polls.lab.toFixed(1)+" after 12mo) · any-state war OK");}
+// reality anchors, any-state war, laws-change-the-world
+{const P1=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'anchor1',name:'A'});
+ for(let i=0;i<12;i++){P1.flags['pmq'+P1.meta.month]=true;P1.flags['bud'+P1.year]=true;E.tick(P1)}
+ if(P1.polls.lab>27)throw new Error("AI Labour ballooned to "+P1.polls.lab.toFixed(1));
+ const P2=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'anchor2',name:'A'});
+ for(let i=0;i<12;i++){P2.flags['pmq'+P2.meta.month]=true;P2.flags['bud'+P2.year]=true;E.tick(P2)}
+ if(P2.polls.lab>28)throw new Error("player Labour ballooned to "+P2.polls.lab.toFixed(1));
+ const NW=E.newGame({party:'lab',bg:'soldier',scenario:'real',difficulty:'standard',seed:'anywar',name:'A'});
+ const dw=E.declareWar(NW,'mideast');
+ if(!dw.ok)throw new Error("cannot declare war on a non-major");
+ if(NW.world.war.ww)throw new Error("non-major war wrongly ww");
+ const PL=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'senate',name:'A'});
+ PL.pols.capital=99;const sb=E.enactBill(PL,'lordselect');
+ if(sb.ok&&sb.div.pass){
+   if(!PL.policy.lordselect)throw new Error("policy flag missing after Senate Act");
+   if(E.appointPeers(PL).ok)throw new Error("peers appointable after abolition");
+   if(PL.lords.peers!==0)throw new Error("old peers survived abolition");}
+ console.log("anchors hold (AI lab "+P1.polls.lab.toFixed(1)+", player lab "+P2.polls.lab.toFixed(1)+") · any-state war OK · Senate Act gates the pen");}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);

@@ -383,3 +383,20 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
 #skipn{background:var(--well);border:1px solid var(--hair2);color:var(--ink);font-family:var(--sans);font-size:11px;
   font-weight:700;letter-spacing:.08em;padding:13px 10px;border-radius:2px}
 #skipn:focus{outline:none;border-color:var(--party)}
+
+/* ===== v9: the corridors ARE the game ===== */
+#gametabs{display:none}
+#viewport{position:relative;overflow:hidden}
+#tab-hub{display:block;overflow-y:auto}
+#tab-hub svg{width:100%;height:calc(100vh - 248px);min-height:430px;display:block}
+.tabpane:not(#tab-hub){position:absolute;inset:0;z-index:6;background:var(--bg);overflow-y:auto;
+  padding:18px 26px 40px;transform:translateX(22px);opacity:0;pointer-events:none;
+  transition:transform .22s ease,opacity .22s ease;display:block}
+.tabpane.on:not(#tab-hub){transform:none;opacity:1;pointer-events:auto}
+.tabpane:not(.on):not(#tab-hub){display:block}
+.roomhead{display:flex;align-items:center;gap:16px;margin:-4px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.roomname{font-family:var(--sans);font-size:13px;font-weight:700;letter-spacing:.3em;color:var(--gold)}
+@keyframes roomPulse{0%,100%{stroke:var(--hair2)}50%{stroke:var(--red);stroke-width:2}}
+.room.pulse rect{animation:roomPulse 1.5s infinite}
+.room{cursor:pointer}
+.room:hover rect{stroke:var(--party);stroke-width:1.6}

@@ -274,11 +274,22 @@ $("#bt-help").onclick=()=>openPrimer(true);
 
 function renderAll(){const vp=$("#viewport");const sy=vp?vp.scrollTop:window.scrollY;renderHUD();renderTicker();
   $$("#gametabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
-  $$(".tabpane").forEach(p=>{const on=p.id==="tab-"+tab;p.classList.toggle("on",on);if(!on)p.innerHTML=""});
+  $$(".tabpane").forEach(p=>{const on=p.id==="tab-"+tab||p.id==="tab-hub";p.classList.toggle("on",on);if(!on)p.innerHTML=""});
   if(tab==="office")$("#tab-office").innerHTML='<div id="ov-top"></div><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div>';
-  ({hub:renderHub,office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign,diary:renderDiary,whips:renderWhips,intel:renderIntel,lords:renderLords,econlab:renderEconLab})[tab]();
+  renderHub(); // the corridors are always under your feet
+  if(tab!=="hub"){
+    ({office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign,diary:renderDiary,whips:renderWhips,intel:renderIntel,lords:renderLords,econlab:renderEconLab})[tab]();
+    const pane=$("#tab-"+tab);
+    if(pane&&!pane.querySelector(".roomhead")){
+      pane.insertAdjacentHTML("afterbegin",`<div class="roomhead"><button class="btn ghost small" id="bt-back">← THE CORRIDORS</button><span class="roomname">${ROOM_NAMES[tab]||tab.toUpperCase()}</span><span class="dim small">esc to leave</span></div>`);
+      const bb=$("#bt-back");if(bb)bb.onclick=()=>{tab="hub";renderAll()};
+    }
+  }
   if(vp)vp.scrollTop=sy;else window.scrollTo({top:sy});
 }
+const ROOM_NAMES={office:"YOUR OFFICE",cabinet:"THE CABINET ROOM",treasury:"HM TREASURY",commons:"THE COMMONS",world:"THE SITUATION ROOM",media:"THE PRESS OFFICE",campaign:"CAMPAIGN HQ",diary:"THE DIARY",whips:"THE WHIPS' OFFICE",intel:"INTELLIGENCE",lords:"THE LORDS",econlab:"THE ECONOMY LAB"};
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"&&tab!=="hub"&&!$("#modal").classList.contains("on")&&$("#scr-game").classList.contains("on")){tab="hub";renderAll()}});
 function renderHUD(){
   const p=S.pols,e=S.econ,gov=S.meta.phase==="government";
   $("#hud-name").textContent=S.meta.pm+" · "+PARTIES[S.meta.party].name+(gov?" · PM":" · Leader of the Opposition");
@@ -502,9 +513,19 @@ function renderWorld(){
       <text x="${m.lx||0}" y="${16+(m.ly||0)}" class="rlabel">${m.n.toUpperCase()}</text>
       ${dep&&(dep.brig||dep.car)?`<text y="26" class="rdep">${"▲".repeat(dep.brig||0)}${dep.car?"⚓":""}</text>`:""}
     </g>`}).join("");
+  const gov2=S.meta.phase==="government";
+  const targets=Object.keys(REGIONS).filter(k=>k!=="uk"&&!(S.world.regions[k]&&S.world.regions[k].occupied))
+    .sort((a,b)=>S.world.regions[a].rel-S.world.regions[b].rel);
+  const warPlan=(gov2&&!S.world.war)?`<div class="panelbox"><h4>WAR PLANNING — the options nobody admits to keeping</h4>
+   <div class="menu tight" style="align-items:center">
+    <select id="wartarget" class="qsearch" style="max-width:280px;margin:0">${targets.map(k=>`<option value="${k}">${REGIONS[k].n} · rel ${Math.round(S.world.regions[k].rel)}${(typeof MAJORS!=="undefined"&&MAJORS.includes(k))?" · ☢ NUCLEAR POWER":""}</option>`).join("")}</select>
+    <button class="btn ghost small" id="wp-ult">Ultimatum · 4</button>
+    <button class="btn red small" id="wp-war">DECLARE WAR · 20</button>
+   </div>
+   <p class="dim small" style="margin-top:6px">Hostile relations make a war defensible; a war of choice costs the world's trust. Against a nuclear power, the doomsday clock starts. For invasion and occupation, click the country on the map.</p></div>`:"";
   const warHud=S.world.war?`<div class="warbanner">⚔ ${S.world.war.name} — support ${Math.round(S.world.war.support)}% · casualties ${Math.round(S.world.war.cas)}${S.world.war.ww?` &nbsp;·&nbsp; ☢ DOOMSDAY ${Math.round(S.world.doom||0)}/100`:""}
    ${S.world.war.ww&&(S.world.doom||0)>50?'<button class="btn red small" id="bt-nuke" style="margin-left:14px">AUTHORISE NUCLEAR STRIKE</button>':""}</div>`:"";
-  $("#tab-world").innerHTML=warHud+`<div class="duo wide">
+  $("#tab-world").innerHTML=warHud+warPlan+`<div class="duo wide">
    <div><div class="seclbl">THE WORLD <span class="dim small">— scroll to zoom · drag to move · click a country</span></div>
     <div id="mapframe">
      <svg id="worldmap" viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet">
@@ -528,6 +549,25 @@ function renderWorld(){
     VB.x=Math.max(0,Math.min(1000-VB.w,dragging.vx-(e.clientX-dragging.x)*sc));
     VB.y=Math.max(0,Math.min(500-VB.h,dragging.vy-(e.clientY-dragging.y)*sc));applyVB()});
   svg.addEventListener("pointerup",()=>dragging=null);
+  const wpU=$("#wp-ult");if(wpU)wpU.onclick=()=>{
+    const k=$("#wartarget").value;
+    if(S.pols.capital<4){toast("Not enough capital.");return}
+    const b4=snapStats();
+    E.applyEffects(S,{capital:-4,rel:{[k]:-10},standing:2});
+    E.frontPage(S,"AN ULTIMATUM TO "+REGIONS[k].n.toUpperCase(),"Delivered at the podium, not through channels. The word 'consequences' is used without a smile.");
+    toastDiff(b4);renderAll();save()};
+  const wpW=$("#wp-war");if(wpW)wpW.onclick=()=>{
+    const k=$("#wartarget").value;const m=REGIONS[k];
+    const major=typeof MAJORS!=="undefined"&&MAJORS.includes(k);
+    modal(`<div class="lbl" style="color:var(--red)">${major?"GREAT-POWER WAR":"DECLARED WAR"}</div><h3>Declare war on ${m.n}?</h3>
+     <div class="body">${major?"They have nuclear weapons. The Cabinet Secretary asks, formally, whether you have considered what the word \"win\" means here. The doomsday meter starts the moment you say yes.":(S.world.regions[k].rel<-50?"Relations are openly hostile — the world will see a case for this war.":"This is a war of choice. Allies will wince; markets will flinch; history will ask why.")}</div>
+     <div class="menu"><button class="btn red" id="dwgo2">Declare war</button><button class="btn ghost" id="dwno2">Step back</button></div>`);
+    $("#dwno2").onclick=closeModal;
+    $("#dwgo2").onclick=()=>{closeModal();const b4=snapStats();
+      const r2=E.declareWar(S,k);
+      if(!r2.ok){toast(r2.msg||"Cannot.");return}
+      if(major)ach("greatpower","Into the Abyss — declared war on a major power");
+      toastDiff(b4);renderAll();save()};};
   const nk=$("#bt-nuke");if(nk)nk.onclick=()=>{
     modal(`<div class="lbl" style="color:var(--red)">THE FOLDER</div><h3>There is no walking this back.</h3>
      <div class="body">Type the codeword to authorise first use. The codeword is <b>MIDNIGHT</b>. Or close this and remain a country among countries.</div>
@@ -563,8 +603,8 @@ function regionPanel(){
    :[["summit","High-profile visit","look like a leader-in-waiting",5]];
   if(gov&&!m.home&&!r.occupied&&!S.world.war){
     acts.push(["invade","INVADE "+m.n.toUpperCase(),r.rel<-40?"they're hostile — a legal case exists":"unprovoked — the whole world will turn",15]);
-    if(typeof MAJORS!=="undefined"&&MAJORS.includes(k))acts.push(["ultimatum","Issue an ultimatum","draw the line in public · relations −10",4],
-      ["declare","DECLARE WAR on "+m.n.toUpperCase(),"a great-power war · the doomsday clock starts",20]);}
+    acts.push(["ultimatum","Issue an ultimatum","draw the line in public · relations −10",4],
+      ["declare","DECLARE WAR on "+m.n.toUpperCase(),(typeof MAJORS!=="undefined"&&MAJORS.includes(k))?"a great-power war · the doomsday clock starts":"a declared state war · the world will judge the cause",20]);}
   return`<div class="panelbox"><h4>${m.n} · ${m.cap}</h4>
    <div class="cab">
     <div class="row2"><span>Leader</span><span><b>${LEADER_NAMES[k]||m.cap}</b> <span class="num ${E.rapport(S,k)>5?"good":E.rapport(S,k)<-5?"bad":"dim"}">rapport ${E.rapport(S,k)>0?"+":""}${E.rapport(S,k)}</span></span></div>
@@ -663,12 +703,14 @@ function renderHub(){
    ["intel","INTELLIGENCE",376,372,150,66,"3 live ops"],["lords","THE LORDS",546,372,150,66,((S.lords&&S.lords.peers)||0)+" peers"],
    ["econlab","ECONOMY LAB",716,372,150,66,fmt1(S.econ.infl)+"% / "+fmt1(S.econ.rates)+"%"]];
   wing.forEach(w2=>rooms.push(w2));
+  const PULSE={world:!!(S.world.war||(S.world.doom||0)>0),whips:S.pols.unity<40,media:S.mediaIndex<-3,
+    econlab:S.econ.trust<35||S.econ.infl>6,treasury:S.fiscalDeficit>5,commons:false};
   const doors=`<path class="corridor" d="M260,210 H300 M500,110 H540 M500,310 H540 M740,110 H780 M740,310 H780 M400,160 V260 M640,160 V260 M160,150 V120 H300 M160,270 V310 H300"/>`;
   $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">No. 10 — the corridors of power · ${E.dateStr(S)}</div>
    <svg id="hubmap" viewBox="0 0 960 460">
     <rect x="20" y="20" width="920" height="430" rx="6" class="hubwall"/>
     ${doors}
-    ${rooms.map(r=>`<g class="room${r[0]==="world"&&S.world.war?" warroom":""}" data-t="${r[0]}">
+    ${rooms.map(r=>`<g class="room${r[0]==="world"&&S.world.war?" warroom":""}${PULSE[r[0]]?" pulse":""}" data-t="${r[0]}">
       <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="3"/>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2-8}" class="rmname">${r[1]}</text>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2+14}" class="rmstat">${r[6]}</text></g>`).join("")}
@@ -992,6 +1034,17 @@ function renderIntel(){
 /* ---------- LORDS ---------- */
 function renderLords(){
   const peers=(S.lords&&S.lords.peers)||0;
+  if(S.policy&&S.policy.lordselect){
+    const rows=[...E.POLL_PARTIES].sort((a,b)=>S.polls[b]-S.polls[a]);
+    $("#tab-lords").innerHTML=`<div class="duo">
+     <div><div class="seclbl">THE SENATE — you abolished the old place</div>
+      <div class="panelbox"><h4>An elected second chamber</h4>
+       <p class="body">The ermine is in a museum. Senators are elected by proportional vote, which means the chamber looks like the polls — and nobody, including you, can pack it.</p>
+       <div class="cab">${rows.map(k=>`<div class="row2"><span><span style="color:${PARTIES[k].col}">■</span> ${PNAMES[k]}</span><span class="num">${Math.round((S.polls[k]/96)*120)} senators</span></div>`).join("")}</div></div></div>
+     <div><div class="seclbl">WHAT CHANGED</div>
+      <div class="panelbox"><p class="body">No patronage peers. No honours-list leverage. No red-bench ambushes. Bills face an elected chamber that answers to the same voters you do. You did this — history will decide if it was brave.</p></div></div></div>`;
+    return;
+  }
   if(S.meta.phase!=="government"){
     $("#tab-lords").innerHTML=`<div class="duo">
      <div><div class="seclbl">THE HOUSE OF LORDS — enemy territory, friendly benches</div>
