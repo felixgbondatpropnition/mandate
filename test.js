@@ -53,7 +53,7 @@ for(const cfg of MATRIX){
     let guard=0,endKind=null;
     while(!S.meta.over&&guard++<200){
       const phaseBefore=S.meta.phase;
-      const due=E.tick(S);
+      const due=E.tick(S);if(S.log.length&&/^SHOCK/.test((S.log[0]||{}).t||""))counts.shocks=(counts.shocks||0)+0;
       due.forEach(q=>{
         if(q.head==="__BYELECTION_NEAR__")E.runByelection(S,true);
         if(q.head==="__BYELECTION_FAR__")E.runByelection(S,false);
@@ -149,7 +149,10 @@ console.log("\n=== MANDATE v2 fleet ===");
 console.log("runs ok:",runs,"/",MATRIX.length,"errors:",errors);
 console.log("endings:",JSON.stringify(endings));
 console.log("counts:",JSON.stringify(counts));
+{let sh=0;const SX=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'shock',name:'S'});
+ for(let i=0;i<400;i++){SX.meta.month++; if(E.maybeShock(SX))sh++;}
+ console.log("shock rate over 400 forced months:",sh); if(sh<8)throw new Error("shocks too rare");}
 console.log("incident-engine space:",E.genComboCount().toLocaleString());
 if(legacies.length)console.log("legacy: min",legacies[0],"p25",legacies[Math.floor(legacies.length*.25)],"med",legacies[Math.floor(legacies.length*.5)],"p75",legacies[Math.floor(legacies.length*.75)],"max",legacies[legacies.length-1]);
-if(E.genComboCount()<10000){console.error("FAIL: situation space under 10k");process.exit(1)}
+if(E.genComboCount()<15000){console.error("FAIL: situation space under 15k");process.exit(1)}
 process.exit(errors?1:0);

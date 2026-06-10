@@ -132,8 +132,10 @@ function click(el, what) {
     // campaign: manifesto stances + target a region
     click($('#gametabs button[data-t="campaign"]'), "campaign tab");
     assert($$("#tab-campaign [data-st]").length === 9, "nine manifesto sliders");
-    const st=$$("#tab-campaign [data-st]")[0]; st.value="1"; st.dispatchEvent(new w.Event("input",{bubbles:true}));
-    click($("#bt-positions"), "set government line");
+    const st=$$("#tab-campaign [data-st]")[0]; st.value="1.5"; st.dispatchEvent(new w.Event("input",{bubbles:true}));
+    click($('#gametabs button[data-t="office"]'), "leave campaign");
+    click($('#gametabs button[data-t="campaign"]'), "return to campaign");
+    assert(parseFloat($$("#tab-campaign [data-st]")[0].value)>=1.4, "stance slider saved instantly");
     click($$("#tab-campaign [data-tr]")[1], "target region");
 
     // press: full TV interview, answering in quotes
@@ -153,6 +155,7 @@ function click(el, what) {
     // cabinet: cross-party ops present + approval caption
     click($('#gametabs button[data-t="cabinet"]'), "cabinet again");
     assert(/PUBLIC APPROVAL/i.test($("#tab-cabinet").textContent), "approval bar explained");
+    assert(/DEALS & DEFECTIONS/i.test($("#tab-cabinet").textContent), "deals panel prominent");
     assert($$("#tab-cabinet [data-xp]").length >= 3, "statecraft buttons");
 
     // play 30 months, resolving every interruption generically

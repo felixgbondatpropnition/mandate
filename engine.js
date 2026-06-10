@@ -314,6 +314,7 @@ function tick(S){
   // delayed effects
   const due=S.queue.filter(q=>q.m<=S.meta.month);S.queue=S.queue.filter(q=>q.m>S.meta.month);
   due.forEach(q=>{applyEffects(S,q.eff);if(q.head&&!q.head.startsWith("__")){log(S,q.head);tick_news(S,q.head)}});
+  maybeShock(S);
   // history
   S.hist.app.push(S.pols.approval);S.hist.gdp.push(E.gdpIdx);
   S.hist.pollMe.push(S.pols.pollMe);S.hist.pollGov.push(S.meta.phase==="government"?(100-S.pols.pollMe-28):S.opp.gov.poll);
@@ -351,6 +352,23 @@ function genComboCount(){
   const fac=3*8*15;
   const opp=GE_DEPTS.length*GE_PLACES.length*GE_FAILS.length;
   return dept+local+pet+intl+storm+celeb+fac+opp;
+}
+
+
+/* ---------- shock roll: rare, loud ---------- */
+function maybeShock(S){
+  if((S.flags._shockCool||0)>S.meta.month)return null;
+  if(S.rng()>=0.075)return null;
+  const pool=SHOCKS.filter(s=>(!s.phase||s.phase===S.meta.phase)&&(!s.cond||s.cond(S)));
+  if(!pool.length)return null;
+  let tw=0;const ws=pool.map(s=>{tw+=s.w;return s.w});
+  let x=S.rng()*tw,sh=pool[0];
+  for(let i=0;i<pool.length;i++){x-=ws[i];if(x<=0){sh=pool[i];break}}
+  const pick=arr=>arr[Math.floor(S.rng()*arr.length)];
+  const[head,sub]=sh.fx(S,pick);
+  frontPage(S,head,sub);log(S,"SHOCK: "+head);tick_news(S,"⚡ "+head);
+  S.flags._shockCool=S.meta.month+3;
+  return head;
 }
 
 /* ---------- card draw ---------- */
@@ -682,17 +700,19 @@ function answerShift(S,iss,pos){
   const a2=ISSUE_AXIS[iss];
   applyIdeo(S,a2[0]==="s"?{e:0,s:(nw-old)*0.5}:{e:(nw-old)*0.5,s:0});
   S.stance[iss]=nw;
-  let gain=0;
+  let gain=0;const moves=[];
   for(const p of POLL_PARTIES){if(p===me)continue;
     const tp=partyIssuePos(p,iss);
     const before=Math.max(0,1.6-Math.abs(old-tp));
     const after=Math.max(0,1.6-Math.abs(nw-tp));
     const steal=clamp((after-before)*0.55*((S.polls[p]||5)/16),-1.2,1.2);
-    S.polls[p]=clamp((S.polls[p]||5)-steal,1,55);gain+=steal;}
+    S.polls[p]=clamp((S.polls[p]||5)-steal,1,55);gain+=steal;
+    if(Math.abs(steal)>=0.12)moves.push([p,steal]);}
   S.polls[me]=clamp((S.polls[me]||20)+gain,1,57);
   const t=Object.values(S.polls).reduce((x,y)=>x+y,0);
   for(const k2 of POLL_PARTIES)S.polls[k2]=S.polls[k2]/t*96;
   S.pols.pollMe=S.polls[me];if(S.opp)S.opp.gov.poll=S.polls[S.opp.gov.party];
+  answerShift._last=moves.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
   return gain;
 }
 
@@ -1021,7 +1041,7 @@ function nextInteraction(S){
 }
 
 /* ---------- exports ---------- */
-const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
+const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,maybeShock,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
   computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,

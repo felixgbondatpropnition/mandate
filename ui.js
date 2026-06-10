@@ -246,7 +246,7 @@ function openPrimer(force){
   const cards=[
    ["One turn = one month","Press ADVANCE. Events will interrupt you — pick an option, watch what it does to your numbers (it pops up at the bottom)."],
    ["Capital is your fuel","Almost every action costs capital. You get +4 back each month. Run dry and you can only sit there."],
-   ["The rooms do the work","Treasury sets taxes and spending. Commons passes laws. Situation runs the world. Cabinet keeps your team loyal. Press keeps the papers sweet. Campaign HQ wins elections."],
+   ["The rooms do the work","Treasury sets taxes and spending. Commons passes laws. Situation runs the world. Cabinet holds your team AND the deals — summits, poaching MPs, pacts, mergers. Press does papers and TV. Campaign HQ wins elections."],
    ["Polls decide everything","The Office tracker shows every party. The countdown to the next election is always top-right. Campaign HQ shows who'd win if it were today."],
    ["How you win","Win elections, stay above 32 unity so your party doesn't knife you, and rack up a legacy score history will respect."]];
   let i=0;
@@ -408,9 +408,12 @@ function renderTreasury(){
 }
 function fiscalBar(){
   const rev=E.revenueOf(staged),sp=E.spendOf(staged),d=sp-rev;
+  const baseObj=(S.meta.phase==="opposition"&&S.platform)?S.platform:S.fiscal;
+  const dirty=Object.keys(FISCAL_META).some(k=>Math.abs((staged[k]??0)-(baseObj[k]??0))>1e-9);
   $("#fiscalbar").innerHTML=`<span>REV <b class="num">${fmt1(rev)}%</b></span><span>SPEND <b class="num">${fmt1(sp)}%</b></span>
    <span>DEFICIT <b class="num ${d>5?"bad":d>3.5?"warn":"good"}">${fmt1(d)}%</b></span>
-   <span>MARKETS WILL ${d>5?'<b class="bad">REVOLT</b>':d>3.5?'<b class="warn">GRUMBLE</b>':'<b class="good">APPROVE</b>'}</span>`;
+   <span>MARKETS WILL ${d>5?'<b class="bad">REVOLT</b>':d>3.5?'<b class="warn">GRUMBLE</b>':'<b class="good">APPROVE</b>'}</span>
+   ${dirty?'<span><b class="warn">● UNSAVED — your edits stay here until you '+(S.meta.phase==="opposition"?"publish":"enact")+'</b></span>':'<span class="good">✓ saved</span>'}`;
 }
 
 /* ---------- PARLIAMENT ---------- */
@@ -612,13 +615,13 @@ function renderHub(){
   const lead=S.meta.phase==="government"?"":(" · "+(S.pols.pollMe-S.opp.gov.poll>=0?"+":"")+fmt1(S.pols.pollMe-S.opp.gov.poll)+" v gov");
   const rank=[...E.POLL_PARTIES].sort((a,b)=>S.polls[b]-S.polls[a]).indexOf(S.meta.party)+1;
   const rooms=[
-   ["office","YOUR OFFICE",34,148,212,118,"approval "+Math.round(S.pols.approval)+"%"],
-   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",286,34,212,118,"unity "+Math.round(S.pols.unity)],
-   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",538,34,212,118,"deficit "+fmt1(S.fiscalDeficit)+"%"],
-   ["commons","THE COMMONS",286,272,212,118,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
-   ["world","SITUATION ROOM",538,272,212,118,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
-   ["media","PRESS OFFICE",788,34,150,118,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
-   ["campaign","CAMPAIGN HQ",788,272,150,118,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
+   ["office","YOUR OFFICE",36,162,188,96,"approval "+Math.round(S.pols.approval)+"%"],
+   ["cabinet",gov?"CABINET":"SHADOW CABINET",252,46,188,96,"unity "+Math.round(S.pols.unity)],
+   ["treasury",gov?"TREASURY":"SHADOW TREASURY",466,46,188,96,"deficit "+fmt1(S.fiscalDeficit)+"%"],
+   ["media","PRESS OFFICE",680,46,188,96,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
+   ["commons","THE COMMONS",252,258,188,96,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
+   ["world","SITUATION ROOM",466,258,188,96,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
+   ["campaign","CAMPAIGN HQ",680,258,188,96,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
   ];
   const doors=`<path class="corridor" d="M260,210 H300 M500,110 H540 M500,310 H540 M740,110 H780 M740,310 H780 M400,160 V260 M640,160 V260 M160,150 V120 H300 M160,270 V310 H300"/>`;
   $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">No. 10 — the corridors of power · ${E.dateStr(S)}</div>
@@ -629,7 +632,7 @@ function renderHub(){
       <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="3"/>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2-8}" class="rmname">${r[1]}</text>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2+14}" class="rmstat">${r[6]}</text></g>`).join("")}
-    <text x="480" y="44" class="hubtitle">${gov?"10 DOWNING STREET":"LEADER OF THE OPPOSITION'S OFFICE"}</text>
+    <text x="40" y="38" text-anchor="start" class="hubtitle">${gov?"10 DOWNING STREET":"LEADER OF THE OPPOSITION'S OFFICE"}</text>
    </svg>
    <div class="hubstrip"><span class="lbl gold">Today's front page</span> <b>${S.paper.head}</b></div>`;
   $$("#hubmap .room").forEach(g=>g.onclick=()=>{tab=g.dataset.t;renderAll()});
@@ -639,7 +642,17 @@ function renderHub(){
 function renderCabinet(){
   const gov=S.meta.phase==="government";
   const pre=gov?"":"Shadow ";
-  $("#tab-cabinet").innerHTML=`<div class="lbl" style="margin:10px 0 2px">${pre}cabinet · the bar shows each minister’s PUBLIC APPROVAL — red means they’re a liability · replace 4 cap</div>
+  $("#tab-cabinet").innerHTML=`   <div class="panelbox"><h4>DEALS &amp; DEFECTIONS — summits, poaching, pacts, mergers</h4>
+    <div class="cab">${Object.keys(PARTIES).filter(k=>k!==S.meta.party&&k!=="snp").map(k=>
+     `<div class="row2"><span><span style="color:${PARTIES[k].col}">■</span> ${PARTIES[k].name} <span class="dim small">· ${REAL_LEADERS[k]||""} · polls ${fmt1(S.polls[k]||0)}%</span></span>
+      <span class="num dim">rel ${E.relOf(S,k)}</span></div>`).join("")}</div>
+    <div class="menu tight" style="margin-top:10px">
+     <button class="btn ghost small" data-xp="summit">Leader summit · 4</button>
+     <button class="btn ghost small" data-xp="poach">Court a defector · 8</button>
+     ${S.meta.phase==="opposition"?'<button class="btn ghost small" data-xp="pact">Propose electoral pact · 6</button>':""}
+     <button class="btn ghost small" data-xp="merge">Merger talks · 12</button>
+    </div></div>
+  <div class="lbl" style="margin:10px 0 2px">${pre}cabinet · the bar shows each minister’s PUBLIC APPROVAL — red means they’re a liability · replace 4 cap</div>
    <div class="mingrid">${S.cabinet.map((m,i)=>`<div class="minister">
      <div class="lbl">${pre}${m.role}</div><h4>${m.name}</h4>
      <div class="track"><div class="fill" style="width:${m.app}%;background:${m.app>45?"var(--bench)":m.app>30?"var(--brass)":"var(--red)"}"></div></div>
@@ -655,16 +668,7 @@ function renderCabinet(){
     <div><div class="lbl">Promises ledger</div>
      <div class="panelbox"><div class="cab">${S.promises.length?S.promises.map(p=>`<div class="row2"><span>${p.text}</span><span class="num ${p.status==="kept"?"good":p.status==="broken"?"bad":"dim"}">${p.status.toUpperCase()}</span></div>`).join(""):"<div class='dim'>No hostages to fortune. Yet.</div>"}</div></div>
 
-   <div class="panelbox"><h4>CROSS-PARTY GAMES — talk, steal, ally, absorb</h4>
-    <div class="cab">${Object.keys(PARTIES).filter(k=>k!==S.meta.party&&k!=="snp").map(k=>
-     `<div class="row2"><span><span style="color:${PARTIES[k].col}">■</span> ${PARTIES[k].name} <span class="dim small">· ${REAL_LEADERS[k]||""} · polls ${fmt1(S.polls[k]||0)}%</span></span>
-      <span class="num dim">rel ${E.relOf(S,k)}</span></div>`).join("")}</div>
-    <div class="menu tight" style="margin-top:10px">
-     <button class="btn ghost small" data-xp="summit">Leader summit · 4</button>
-     <button class="btn ghost small" data-xp="poach">Court a defector · 8</button>
-     ${S.meta.phase==="opposition"?'<button class="btn ghost small" data-xp="pact">Propose electoral pact · 6</button>':""}
-     <button class="btn ghost small" data-xp="merge">Merger talks · 12</button>
-    </div></div>
+
      <div class="lbl" style="margin-top:14px">The bench</div>
      <div class="panelbox"><div class="cab">${(S.bench||[]).map(b=>`<div class="row2"><span>${b.name} <span class="dim small">(${b.fav})</span></span><span class="num dim">app ${Math.round(b.app)}</span></div>`).join("")||"<div class='dim'>Nobody left worth promoting. Worrying.</div>"}</div></div>
     </div></div>`;
@@ -756,7 +760,7 @@ function renderCampaign(){
      <div class="menu tight">${S.meta.phase==="opposition"
        ?'<button class="btn small" id="bt-manifesto">Publish manifesto positions</button>'
        :'<button class="btn small" id="bt-positions">Set the government’s line · 3 capital</button>'}
-      <span class="dim small">Closer to public opinion = polling tailwind. Your factions have feelings about it.</span></div></div>
+      <span class="dim small">Sliders save instantly. Interviews and PMQs also move them — what you say in public IS your position.</span></div></div>
     <div class="panelbox"><h4>Target a region — extra effort where it matters</h4>
      <div class="opts">${ELECT_REGIONS.map(([k,label,seats])=>`<button class="choice small ${target===k?"selz":""}" data-tr="${k}">${label} <small>${seats} seats${target===k?" · TARGETED":""}</small></button>`).join("")}</div></div>
     ${gov?`<div class="panelbox"><h4>Go early?</h4><p class="body dim small">The projection in panel 3 is your honest odds. There's no taking it back.</p>
@@ -767,14 +771,14 @@ function renderCampaign(){
   drawPolls("#polls2","#polleg2");
 
   $$("#tab-campaign [data-st]").forEach(inp=>inp.oninput=()=>{
+    E.setStance(S,inp.dataset.st,+inp.value);save();
     inp.closest(".stancerow").querySelector("label .num").textContent=(+inp.value>0?"+":"")+fmt1(+inp.value)});
-  const applyStances=()=>{$$("#tab-campaign [data-st]").forEach(inp=>E.setStance(S,inp.dataset.st,+inp.value))};
-  const bm=$("#bt-manifesto");if(bm)bm.onclick=()=>{applyStances();S.flags.platformSet=true;
+  const bm=$("#bt-manifesto");if(bm)bm.onclick=()=>{S.flags.platformSet=true;
     E.applyEffects(S,{poll:.5});E.frontPage(S,"THE MANIFESTO POSITIONS","Eight answers to eight arguments, in writing. Brave, by Westminster standards.");
     toast("<b>PUBLISHED</b>");renderAll();save()};
   const bp=$("#bt-positions");if(bp)bp.onclick=()=>{
     if(S.pols.capital<3){toast("Not enough capital.");return}
-    E.applyEffects(S,{capital:-3});applyStances();
+    E.applyEffects(S,{capital:-3});
     toast("<b>LINE SET</b> · the lobby is briefed");renderAll();save()};
   $$("#tab-campaign [data-tr]").forEach(b2=>b2.onclick=()=>{S.flags.targetRegion=b2.dataset.tr;toast("<b>TARGETED</b> · extra swing in "+b2.dataset.tr.toUpperCase());renderCampaign();save()});
   const sn=$("#bt-snap2");if(sn)sn.onclick=()=>{
@@ -811,7 +815,10 @@ function startInterview(fmtKey){
      <div class="opts">${q.opts.map((o,i)=>`<button class="choice quote" data-i="${i}">${o[0]}</button>`).join("")}</div>
      <div class="perfbar"><div style="width:${clampPct(50+score*8)}%"></div></div>`,true);
     $$("#modal .choice").forEach(c=>c.onclick=()=>{
-      score+=E.interviewAnswer(S,q.opts[+c.dataset.i],f.reach,q.k);qi++;ask()});
+      score+=E.interviewAnswer(S,q.opts[+c.dataset.i],f.reach,q.k);
+      const mv=(E.answerShift._last||[]).slice(0,2);
+      if(mv.length)toast(mv.map(m2=>(m2[1]>0?"+":"")+fmt1(m2[1])+"% "+(m2[1]>0?"from ":"to ")+PNAMES[m2[0]]).join(" &nbsp;·&nbsp; "));
+      qi++;ask()});
   };
   ask();
 }
@@ -819,7 +826,7 @@ function clampPct(x){return Math.max(4,Math.min(96,x))}
 
 /* ---------- core flow ---------- */
 function advance(){
-  staged=null;busy=true;$("#bt-advance").disabled=true;
+  busy=true;$("#bt-advance").disabled=true;
   const due=E.tick(S);
   due.forEach(q=>{
     if(q.head==="__BYELECTION_NEAR__")E.runByelection(S,true);

@@ -1051,4 +1051,39 @@ const GE_FAMILIES=[
      {l:"Say nothing — don't interrupt them",s:"Restraint is a weapon",eff:{gov:{app:-.4*sev},capital:2}}]}}},
 ];
 
+
+/* ---------- SHOCKS: rare, loud, game-bending ---------- */
+const LAB_SUCCESSORS=["Wes Streeting","Angela Rayner","Yvette Cooper","Shabana Mahmood"];
+const SHOCKS=[
+ {id:"gov_coup",w:3,phase:"opposition",cond:S=>S.opp&&S.opp.gov.approval<38&&S.opp.gov.monthsIn>10,
+  fx:(S,pick)=>{const old=S.opp.gov.pm;const nw=pick(LAB_SUCCESSORS.filter(n=>n!==old));
+   S.opp.gov.pm=nw;S.opp.gov.approval=44;S.opp.gov.fatigue=0.6;S.opp.gov.monthsIn=0;
+   return["THE PM IS GONE",old+" is forced out by their own MPs after a brutal leadership challenge. "+nw+" walks into No. 10 with a new-leader bounce — your easiest target just regenerated."]}},
+ {id:"opp_coup",w:3,phase:"government",cond:S=>S.pols.oppStr<45,
+  fx:(S,pick)=>{const old=S.pols.oppName;const nw=pick(["Robert Jenrick","James Cleverly","Tom Tugendhat","Priti Patel"].filter(n=>n!==old));
+   S.pols.oppName=nw;S.pols.oppStr=58;
+   return["THE OPPOSITION REGENERATES",old+" is dumped by their party. "+nw+" takes over and the press scents a contest again. Your free ride is over."]}},
+ {id:"flashcrash",w:2,fx:S=>{S.econ.trust=Math.max(10,S.econ.trust-16);S.econ.g-=0.5;
+   return["MARKETS CRACK","A hedge-fund blow-up in New York goes global before lunch. Gilts gap down, the £ follows, and every plan you had this quarter is suddenly negotiable."]}},
+ {id:"oilspike",w:2,fx:S=>{S.econ.energy=Math.min(6,S.econ.energy+1.3);S.econ.infl+=0.8;
+   return["OIL GOES VERTICAL","A blockade in the Strait of Hormuz sends crude through $140. Petrol queues by Friday; inflation forecasts torn up by Monday."]}},
+ {id:"bondrally",w:1.5,fx:S=>{S.econ.trust=Math.min(100,S.econ.trust+12);S.econ.rates=Math.max(0.5,S.econ.rates-0.25);
+   return["GILTS RALLY","A global flight to quality lands, of all places, on Britain. Borrowing gets cheaper and the Treasury allows itself one (1) smile."]}},
+ {id:"roguepoll",w:2.5,fx:S=>{const sh=(S.rng()*4-2);S.polls[S.meta.party]=Math.max(2,S.polls[S.meta.party]+sh);
+   return["A ROGUE POLL DETONATES","One survey puts you "+(sh>0?"surging":"collapsing")+" and the lobby loses its mind for a week. It's one poll. Nobody behaves like it's one poll."]}},
+ {id:"rivalscandal",w:2.5,fx:(S,pick)=>{const ks=["lab","con","lib","ref","grn"].filter(k=>k!==S.meta.party);const k=pick(ks);
+   S.polls[k]=Math.max(2,S.polls[k]-1.6);S.polls[S.meta.party]+=0.5;
+   return[PARTIES[k].name.toUpperCase()+" ENGULFED","A donor scandal detonates under "+(REAL_LEADERS[k]||PARTIES[k].name)+". Their week is yours to enjoy — quietly."]}},
+ {id:"defectwave",w:1.5,phase:"opposition",cond:S=>S.polls[S.meta.party]>22,
+  fx:S=>{S.party.seats+=2;return["TWO MORE CROSS THE FLOOR","Your poll lead starts pulling MPs across like gravity. Two defections in one afternoon; the whips on both sides cancel dinner."]}},
+ {id:"strikewave",w:2,fx:S=>{S.econ.g-=0.3;S.svc.nhsWait+=0.3;
+   return["A GENERAL STRIKE MOOD","Rail, doctors, teachers and dockers all ballot in the same fortnight. The TUC calls it coincidence, with a smile."]}},
+ {id:"cyberhit",w:1.5,fx:S=>{S.svc.nhsWait+=0.4;S.world.standing-=3;
+   return["NHS SYSTEMS DOWN","A ransomware crew locks three hospital trusts out of their own records. Ambulances divert; ministers learn what 'legacy IT' means at 3am."]}},
+ {id:"heatdeath",w:1.5,fx:S=>{S.econ.energy+=0.5;
+   return["THE GRID GROANS","A continent-wide heat dome melts rails and margins alike. Air conditioning becomes a political issue overnight."]}},
+ {id:"royalmoment",w:1,fx:S=>{S.pols.approval+=1.5;
+   return["A ROYAL MOMENT UNITES, BRIEFLY","A jubilee announcement gives the country a fortnight of bunting and truce. Politics holds its breath, then exhales."]}},
+];
+
 if(typeof module!=="undefined")module.exports={};
