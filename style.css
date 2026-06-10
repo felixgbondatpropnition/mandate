@@ -347,3 +347,10 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
 #capfill{height:100%;background:var(--party);transition:width .5s ease}
 #capfill.low{background:var(--red);animation:warblink 1.4s infinite}
 #capwrap .num{font-size:15px;font-weight:700;color:var(--party)}
+
+/* v5.1: tiled cartogram + detailed coastlines */
+.seatcell{stroke:rgba(5,8,14,.7);stroke-width:.6}
+.ukmap{max-width:470px}
+.connector{stroke:var(--hair2);stroke-width:1;stroke-dasharray:4 3}
+.land{stroke-width:.4}
+.rlabel{paint-order:stroke;stroke:rgba(9,18,35,.85);stroke-width:2.4px}

@@ -121,21 +121,23 @@ function ukMapHTML(R,title){
   if(typeof UK_MAP==="undefined"||!R||!R.regions||!R.regions.length)return"";
   const cells=ukCells(),rows=R.rows;
   let rects="";
+  const cs=(UK_MAP.cell||9)*0.88,h=cs/2;
+  const cell=(c,fill,tip)=>`<rect x="${(c[0]-h).toFixed(1)}" y="${(c[1]-h).toFixed(1)}" width="${cs.toFixed(1)}" height="${cs.toFixed(1)}" rx="${(cs*0.28).toFixed(1)}" class="seatcell" fill="${fill}">${tip?`<title>${tip}</title>`:""}</rect>`;
   for(const rg of R.regions){
     const list=cells[rg.key]||[];let ci=0;
     const order=(rg.breakdown||[]).map((s,i)=>[s,i]).sort((a,b)=>b[0]-a[0]);
     for(const[cnt,pi]of order){for(let k=0;k<cnt&&ci<list.length;k++,ci++){
-      const c=list[ci];
-      rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="${rows[pi].c}"><title>${rg.label} — ${rows[pi].n.replace(" (you)","")}</title></rect>`}}
-    while(ci<list.length){const c=list[ci++];rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="#39414f"/>`}
+      rects+=cell(list[ci],rows[pi].c,`${rg.label} — ${rows[pi].n.replace(" (you)","")}`)}}
+    while(ci<list.length)rects+=cell(list[ci++],"#39414f");
   }
-  (cells.ni||[]).forEach(c=>{rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="#5a5f6b"><title>Northern Ireland — local parties</title></rect>`});
+  (cells.ni||[]).forEach(c=>rects+=cell(c,"#5a5f6b","Northern Ireland — local parties"));
   const outline=UK_MAP.outline.map(p=>`<path d="${p}" class="ukoutline"/>`).join("");
-  const I=UK_MAP.inset;
+  const I=UK_MAP.inset,K=UK_MAP.connector;
   return`<div class="ukmapwrap"><span class="seclbl">${title}</span>
    <svg viewBox="0 0 ${UK_MAP.W} ${UK_MAP.H}" class="ukmap">${outline}
+    ${K?`<line x1="${K[0]}" y1="${K[1]}" x2="${K[2]}" y2="${K[3]}" class="connector"/>`:""}
     <rect x="${I.x}" y="${I.y}" width="${I.w}" height="${I.h}" class="insetbox"/>
-    <text x="${I.x+I.w/2}" y="${I.y-4}" class="insetlbl">LONDON · 75</text>${rects}</svg></div>`;
+    <text x="${I.x+I.w/2}" y="${I.y-5}" class="insetlbl">LONDON · 75 SEATS</text>${rects}</svg></div>`;
 }
 
 /* ---------- outcome deltas + stat explainers ---------- */
@@ -448,7 +450,7 @@ function renderWorld(){
       ${war?'<circle r="16" class="pulse"/>':""}
       <circle r="${m.home?8:6}" style="fill:hsl(${hue},55%,${m.home?55:42}%)"/>
       ${r.occupied?'<text y="-11" class="rocc">⚑ OCCUPIED</text>':""}
-      <text y="16" class="rlabel">${m.n.toUpperCase()}</text>
+      <text x="${m.lx||0}" y="${16+(m.ly||0)}" class="rlabel">${m.n.toUpperCase()}</text>
       ${dep&&(dep.brig||dep.car)?`<text y="26" class="rdep">${"▲".repeat(dep.brig||0)}${dep.car?"⚓":""}</text>`:""}
     </g>`}).join("");
   $("#tab-world").innerHTML=`<div class="duo wide">
