@@ -234,7 +234,6 @@ const BILLS=[
  {id:"smoking",n:"Smoke-Free Generation Act",ideo:{e:-.2,s:.4},cost:7,desc:"Nobody born after 2010 may ever legally buy cigarettes.",fx:{app:2,svc:{nhs:-.1}},quip:"THE LAST CIGARETTE"},
  {id:"votes16",n:"Votes at Sixteen Act",ideo:{e:-.5,s:-1.1},cost:8,desc:"Two million new voters, most of whom are not yours… probably.",fx:{poll:.5,faction:{"The Activists":6,"Deep Greens":4,"National Right":-6}},quip:"SIXTEEN AND COUNTED"},
  {id:"idcards",n:"Digital Identity Act",ideo:{e:.3,s:1.2},cost:10,desc:"One ID to rule them all. The civil-liberties lobby is already outside.",fx:{svc:{mig:-60,crime:-3},media:-3,faction:{"Social Liberals":-8,"The Activists":-7}},quip:"PAPERS, PLEASE (DIGITALLY)"},
- {id:"lordselect",n:"Elected Senate Act",ideo:{e:-.4,s:-.7},cost:12,desc:"Eight hundred years of ermine versus one afternoon of democracy.",fx:{app:2,capital:-2,unity:-3},quip:"THE PEOPLE'S OTHER HOUSE"},
  {id:"echr",n:"Withdrawal from the ECHR",ideo:{e:.8,s:2},cost:14,desc:"Leave the Strasbourg court. Allies wince; the base roars.",fx:{standing:-8,rel:{france:-8,germany:-8},poll:1,faction:{"One Nation":-10,"Social Liberals":-10,"The Faithful":8}},quip:"BRITAIN ALONE (LEGALLY)"},
  {id:"netzero2035",n:"Net Zero Acceleration Act",ideo:{e:-1.1,s:-.6},cost:12,desc:"2035, binding, no offsets. Industry howls; the future applauds.",fx:{standing:6,svc:{energy:10},econ:{spendBump:.5},faction:{"Free Marketeers":-8,"The Old Guard":-8}},quip:"THE GREAT REWIRING"},
  {id:"phones",n:"Phone-Free Schools Act",ideo:{e:0,s:.6},cost:5,desc:"The least controversial law in a decade. Teachers weep with joy.",fx:{app:3,svc:{schools:3}},quip:"BELL RINGS, PHONES OFF"},
@@ -251,8 +250,7 @@ const BILLS=[
  {id:"points",n:"Skills-First Visa Act",ideo:{e:.4,s:.6},cost:8,desc:"Rebuild the points system around shortages. Technocratic, defensible.",fx:{svc:{mig:-50},econ:{g:.1}},quip:"THE NEW FRONT DOOR"},
  {id:"prisonbuild",n:"Prison Capacity Act",ideo:{e:.3,s:1},cost:8,desc:"Twenty thousand places. Unsexy, necessary, photographs terribly.",fx:{svc:{crime:-2},econ:{spendBump:.3}},quip:"BRITAIN BUILDS CELLS, PROPERLY"},
  {id:"devomax",n:"Devolution Maximum Act",ideo:{e:-.3,s:-.6},cost:10,desc:"Hand the nations everything short of embassies. The Union's last offer.",fx:{scot:-12,app:1,unity:-3},quip:"THE FAMILY RENEGOTIATED"},
-{id:"pr",n:"Proportional Representation Act",ideo:{e:-.3,s:-.9},cost:14,desc:"Every election after this one: seats match votes, nationwide. Turkeys voting for Christmas — and yet here you are, carving.",fx:{app:1,unity:-6,faction:{"The Activists":8,"Social Liberals":8,"The Left":4,"The Old Guard":-6,"Thatcherites":-6}},quip:"WESTMINSTER, REWIRED"},
- {id:"euvet",n:"EU Alignment (Veterinary) Act",ideo:{e:-.2,s:-.6},cost:7,desc:"Sausages without strings. The quiet reunion, course one.",
+{id:"euvet",n:"EU Alignment (Veterinary) Act",ideo:{e:-.2,s:-.6},cost:7,desc:"Sausages without strings. The quiet reunion, course one.",
   fx:{rel:{germany:6,france:6},econ:{g:.15},faction:{"National Right":-8,"The Leader's Circle":-8}},quip:"PEACE IN OUR TIME (FOR SAUSAGES)"},
 ];
 

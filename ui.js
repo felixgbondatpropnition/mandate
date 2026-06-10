@@ -727,7 +727,7 @@ function renderCabinet(){
   $("#tab-cabinet").innerHTML=`   <div class="panelbox"><h4>DEALS &amp; DEFECTIONS — summits, poaching, pacts, mergers</h4>
     <div class="cab">${Object.keys(PARTIES).filter(k=>k!==S.meta.party&&k!=="snp").map(k=>
      `<div class="row2"><span><span style="color:${PARTIES[k].col}">■</span> ${PARTIES[k].name} <span class="dim small">· ${REAL_LEADERS[k]||""} · polls ${fmt1(S.polls[k]||0)}%</span></span>
-      <span class="num dim">rel ${E.relOf(S,k)}</span></div>`).join("")}</div>
+      <span class="num dim">rel ${E.relOf(S,k)}${S.flags.pactWith===k?' · <b class="good">PACT ✓</b>':S.flags["merged_"+k]?' · <b class="gold">MERGED</b>':""}</span></div>`).join("")}</div>
     <div class="menu tight" style="margin-top:10px">
      <button class="btn ghost small" data-xp="summit">Leader summit · 4</button>
      <button class="btn ghost small" data-xp="poach">Court a defector · 8</button>
@@ -781,7 +781,11 @@ function renderCabinet(){
         :op==="pact"?E.proposePact(S,c.dataset.k)
         :E.proposeMerger(S,c.dataset.k);
       if(!r.ok){toast(r.msg||"Cannot.");return}
-      toastDiff(b4);renderAll();save()})});
+      if(r.head){modal(`<div class="lbl ${r.win===false?"":"gold"}">${op.toUpperCase()} — the outcome</div>
+        <h3>${r.head}</h3><div class="body">${r.sub||""}</div>
+        <div class="menu"><button class="btn" id="xpok">Noted</button></div>`,true);
+        $("#xpok").onclick=()=>{closeModal();toastDiff(b4);renderAll();save()};}
+      else{toastDiff(b4);renderAll();save()}})});
   $$("#tab-cabinet .btn[data-f]").forEach(b=>b.onclick=()=>{
     const f=S.party.factions[+b.dataset.f];
     if(b.dataset.x==="court"){if(S.pols.capital<4){toast("Not enough capital.");return}
@@ -827,6 +831,7 @@ function renderCampaign(){
    <div>
     <div class="panelbox"><h4>The clock</h4><div class="cab">
      <div class="row2"><span>Next election</span><span class="num warn">within ${due} months</span></div>
+     <div class="row2"><span>Electoral pact</span><span class="num">${S.flags.pactWith?PARTIES[S.flags.pactWith].name+" ✓":"none — see Cabinet › Deals"}</span></div>
      ${S.opp?`<div class="row2"><span>Campaign fund</span><span class="num">£${fmt1(S.opp.warchest)}m</span></div>`:""}
      
     </div></div>

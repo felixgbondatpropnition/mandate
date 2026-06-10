@@ -120,7 +120,7 @@ for(let i=0;i<30;i++){
  if(!dw.ok)throw new Error("cannot declare war on a non-major");
  if(NW.world.war.ww)throw new Error("non-major war wrongly ww");
  const PL=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'senate',name:'A'});
- PL.pols.capital=99;const sb=E.enactBill(PL,'lordselect');
+ PL.pols.capital=99;const sb=E.enactBill(PL,'lords');
  if(sb.ok&&sb.div.pass){
    if(!PL.policy.lordselect)throw new Error("policy flag missing after Senate Act");
    if(E.appointPeers(PL).ok)throw new Error("peers appointable after abolition");
@@ -143,6 +143,23 @@ for(let i=0;i<30;i++){
    if(prBonus>=fptpBonus&&fptpBonus>0.03)throw new Error("PR did not remove the winner's bonus");
    console.log("PR Act OK: FPTP leader bonus "+(fptpBonus*100).toFixed(1)+"pp -> PR "+(prBonus*100).toFixed(1)+"pp; all parties within 7pp of vote share");
  } else console.log("PR Act: division lost in this seed (allowed) — proportionality untested this run");}
+// every law is unique, enactable, registered; drifts hold
+{const ids=D.BILLS.map(b=>b.id);
+ if(new Set(ids).size!==ids.length)throw new Error("DUPLICATE BILL IDS: "+ids.filter((x,i)=>ids.indexOf(x)!==i).join(","));
+ const LB=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'lawbook',name:'L'});
+ let passed=0;
+ for(const b of D.BILLS){LB.pols.capital=99;LB.pols.unity=75;
+   const r=E.enactBill(LB,b.id,true);
+   if(!r.ok)throw new Error("enact refused for "+b.id+": "+(r.msg||""));
+   if(r.div.pass){passed++;
+     if(!LB.policy[b.id])throw new Error("policy not registered for "+b.id);}}
+ if(passed<D.BILLS.length-4)throw new Error("too many laws failing whipped on a 172 majority: "+passed+"/"+D.BILLS.length);
+ const EC=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'drift',name:'D'});
+ const CT=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'drift',name:'D'});
+ EC.policy={echr:true};
+ for(let i=0;i<6;i++){[EC,CT].forEach(X=>{X.flags['pmq'+X.meta.month]=true;X.flags['bud'+X.year]=true;E.tick(X)})}
+ if(!(EC.svc.mig<CT.svc.mig-30))throw new Error("ECHR drift dead: "+EC.svc.mig.toFixed(0)+" vs "+CT.svc.mig.toFixed(0));
+ console.log("law book OK: "+ids.length+" unique bills, "+passed+" passed & registered · ECHR drift "+EC.svc.mig.toFixed(0)+" vs control "+CT.svc.mig.toFixed(0));}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);

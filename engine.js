@@ -330,6 +330,21 @@ function tick(S){
   // delayed effects
   const due=S.queue.filter(q=>q.m<=S.meta.month);S.queue=S.queue.filter(q=>q.m>S.meta.month);
   due.forEach(q=>{applyEffects(S,q.eff);if(q.head&&!q.head.startsWith("__")){log(S,q.head);tick_news(S,q.head)}});
+  if(S.policy){const sv=S.svc;
+    if(S.policy.echr)sv.mig=Math.max(320,sv.mig-8);
+    if(S.policy.points)sv.mig=Math.max(340,sv.mig-5);
+    if(S.policy.borders)sv.mig=Math.max(360,sv.mig-4);
+    if(S.policy.idcards)sv.crime=Math.max(88,sv.crime-0.15);
+    if(S.policy.prisonbuild)sv.crime=Math.max(88,sv.crime-0.12);
+    if(S.policy.police)sv.crime=Math.max(88,sv.crime-0.1);
+    if(S.policy.cannabis)sv.crime=Math.max(88,sv.crime-0.08);
+    if(S.policy.smoking)sv.nhsWait=Math.max(4.2,sv.nhsWait-0.012);
+    if(S.policy.nhsplan)sv.nhsWait=Math.max(4.2,sv.nhsWait-0.02);
+    if(S.policy.nuclear)S.econ.energy=Math.max(0.2,S.econ.energy-0.015);
+    if(S.policy.frack)S.econ.energy=Math.max(0.2,S.econ.energy-0.02);
+    if(S.policy.netzero2035)S.econ.energy=Math.max(0.2,S.econ.energy-0.02);
+    if(S.policy.planning)sv.housing=Math.min(400,(sv.housing||200)+1.5);
+  }
   maybeShock(S);
   // history
   S.hist.app.push(S.pols.approval);S.hist.gdp.push(E.gdpIdx);
@@ -446,6 +461,8 @@ function drawCard(S){
     if(S.flags.byCurse&&(c.id==="byelection"||c.id==="o_byelect"))w*=2.5;
     if(S.flags.royalMoment&&c.id==="honours_row")w*=4;
     if(S.policy&&S.policy.lordselect&&(c.id==="lords_block"||c.id==="honours_row"||c.id==="peerages"))w=0;
+    if(S.policy&&S.policy.devomax&&c.id==="indyref")w*=0.25;
+    if(S.policy&&(S.policy.echr||S.policy.borders)&&c.id==="smallboats")w*=0.5;
     tw+=w;return w});
   if(S.rng()<0.45){const g=genEvent(S);if(g)return g}
   let x=S.rng()*tw;
@@ -722,7 +739,8 @@ function computeDivision(S,bill,whipped){
 }
 function applyPolicy(S,billId){
   S.policy=S.policy||{};S.policy[billId]=true;
-  if(billId==="lordselect"){S.lords={peers:0};log(S,"The appointed Lords is abolished — all patronage peers dissolved");}
+  if(billId==="lords"||billId==="lordselect"){S.policy.lordselect=true;S.lords={peers:0};
+    log(S,"The appointed Lords is abolished — all patronage peers dissolved");}
   if(billId==="votes16"&&S.pollBase){S.pollBase.grn=clamp(S.pollBase.grn+0.7,3,34);
     S.pollBase.lab=clamp(S.pollBase.lab+0.4,3,34);S.pollBase.ref=clamp(S.pollBase.ref-0.4,3,34);}
 }
@@ -953,8 +971,7 @@ function bumpRel(S,k,v){S.partyRel=S.partyRel||{};S.partyRel[k]=clamp((S.partyRe
 function partySummit(S,k){
   if(S.pols.capital<4)return{ok:false,msg:"Not enough capital."};
   applyEffects(S,{capital:-4});bumpRel(S,k,8);
-  frontPage(S,"TEA WITH "+(REAL_LEADERS[k]||PARTIES[k].name).toUpperCase(),"Ninety minutes, two communiqués, one careful photograph. Westminster reads the body language like scripture.");
-  log(S,"Summit with "+PARTIES[k].name);return{ok:true};
+  const h1="TEA WITH "+(REAL_LEADERS[k]||PARTIES[k].name).toUpperCase(),s1="Ninety minutes, two communiqués, one careful photograph. Relationship warms to "+relOf(S,k)+". Westminster reads the body language like scripture.";frontPage(S,h1,s1);log(S,"Summit with "+PARTIES[k].name);return{ok:true,head:h1,sub:s1};
 }
 function poachMP(S,k){
   if(S.pols.capital<8)return{ok:false,msg:"Not enough capital (need 8)."};
@@ -964,11 +981,9 @@ function poachMP(S,k){
   if(S.rng()<p){
     if(!houseSeatTransfer(S,S.meta.party,k,1)){applyEffects(S,{capital:4});return{ok:true,win:false}}
     applyEffects(S,{poll:0.4,unity:2});S.polls[k]=clamp(S.polls[k]-0.4,1,55);
-    frontPage(S,"DEFECTION","A sitting "+PARTIES[k].name+" MP crosses to you, live on the evening news. "+(REAL_LEADERS[k]||"Their leader")+" calls it 'a betrayal'; you call it 'a homecoming'.");
-    log(S,"Poached an MP from "+PARTIES[k].name);return{ok:true,win:true}}
+    const h2="DEFECTION",s2="A sitting "+PARTIES[k].name+" MP crosses to you, live on the evening news. "+(REAL_LEADERS[k]||"Their leader")+" calls it 'a betrayal'; you call it 'a homecoming'. Your benches grow by one.";frontPage(S,h2,s2);log(S,"Poached an MP from "+PARTIES[k].name);return{ok:true,win:true,head:h2,sub:s2}}
   bumpRel(S,k,-8);applyEffects(S,{sleaze:2});
-  frontPage(S,"THE POACH THAT FAILED","Your overture leaks. "+(REAL_LEADERS[k]||"Their leader")+" reads your texts out at their conference, to sustained laughter.");
-  log(S,"Failed poach from "+PARTIES[k].name);return{ok:true,win:false};
+  const h3="THE POACH THAT FAILED",s3="Your overture leaks. "+(REAL_LEADERS[k]||"Their leader")+" reads your texts out at their conference, to sustained laughter.";frontPage(S,h3,s3);log(S,"Failed poach from "+PARTIES[k].name);return{ok:true,win:false,head:h3,sub:s3};
 }
 function proposePact(S,k){
   if(S.meta.phase!=="opposition")return{ok:false,msg:"Pacts are an opposition game."};
@@ -977,14 +992,12 @@ function proposePact(S,k){
   applyEffects(S,{capital:-6});
   const ide=x=>PARTIES[x].ideal.e;
   const dist=Math.abs(ide(S.meta.party)-ide(k));
-  if(dist>1.3){frontPage(S,(REAL_LEADERS[k]||PARTIES[k].name).toUpperCase()+" SAYS NO","Politely, publicly, and within the hour. Some bridges are oceans.");bumpRel(S,k,-4);return{ok:true,win:false}}
+  if(dist>1.3){const h4=(REAL_LEADERS[k]||PARTIES[k].name).toUpperCase()+" SAYS NO",s4="Politely, publicly, and within the hour. Some bridges are oceans — your parties are too far apart for voters to swallow a pact.";frontPage(S,h4,s4);bumpRel(S,k,-4);return{ok:true,win:false,head:h4,sub:s4}}
   const p=sig(relOf(S,k)/22+((S.polls[k]<(({lab:31,con:28,lib:13,ref:16,grn:7,res:5})[k]||8))?0.5:-0.4)-dist*0.5);
   if(S.rng()<p){S.flags.pactWith=k;
-    frontPage(S,"THE PACT","You and "+(REAL_LEADERS[k]||PARTIES[k].name)+" agree to stand aside for each other in the marginals. The government calls it a stitch-up, nervously.");
-    log(S,"Electoral pact with "+PARTIES[k].name);return{ok:true,win:true}}
+    const h5="THE PACT IS SIGNED",s5="You and "+(REAL_LEADERS[k]||PARTIES[k].name)+" agree to stand aside for each other in the marginals. Worth roughly a point of national swing on election day. The government calls it a stitch-up, nervously.";frontPage(S,h5,s5);log(S,"Electoral pact with "+PARTIES[k].name);return{ok:true,win:true,head:h5,sub:s5}}
   bumpRel(S,k,-6);
-  frontPage(S,"PACT TALKS COLLAPSE","Hours of secret talks end with a frosty two-line statement and mutual briefing. So it goes.");
-  return{ok:true,win:false};
+  const h6="PACT TALKS COLLAPSE",s6="Hours of secret talks end with a frosty two-line statement and mutual briefing. Build the relationship with summits and try again when they need you more.";frontPage(S,h6,s6);return{ok:true,win:false,head:h6,sub:s6};
 }
 function proposeMerger(S,k){
   if(S.pols.capital<12)return{ok:false,msg:"Not enough capital (need 12)."};
@@ -1001,11 +1014,9 @@ function proposeMerger(S,k){
     S.polls[S.meta.party]=clamp(S.polls[S.meta.party]+S.polls[k]*0.65,1,57);
     S.polls[k]=1.2;S.flags["merged_"+k]=true;
     applyEffects(S,{unity:-12,poll:0});
-    frontPage(S,"TWO PARTIES BECOME ONE","The "+PARTIES[k].name+" name retires after one last conference singalong. Their members are yours now — and so are their feuds.");
-    log(S,"MERGED with "+PARTIES[k].name);return{ok:true,win:true,gain}}
+    const h7="TWO PARTIES BECOME ONE",s7="The "+PARTIES[k].name+" name retires after one last conference singalong. Their members, voters and "+gain+" seats are yours now — and so are their feuds.";frontPage(S,h7,s7);log(S,"MERGED with "+PARTIES[k].name);return{ok:true,win:true,gain,head:h7,sub:s7}}
   bumpRel(S,k,-10);
-  frontPage(S,"MERGER TALKS IMPLODE","'They wanted a takeover, not a marriage,' their negotiator briefs. Months of trust, spent in an afternoon.");
-  return{ok:true,win:false};
+  const h8="MERGER TALKS IMPLODE",s8="'They wanted a takeover, not a marriage,' their negotiator briefs. Months of trust, spent in an afternoon.";frontPage(S,h8,s8);return{ok:true,win:false,head:h8,sub:s8};
 }
 
 /* ---------- confidence votes ---------- */
