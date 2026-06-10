@@ -28,13 +28,14 @@ function newGame(cfg){
   let SC;
   if(cfg.scenario==="gen"&&cfg.gen){
     const g=cfg.gen;
-    SC={name:g.name,phase:GEN_POL[g.p][1],setup:S2=>{
+    SC={name:g.name,phase:"auto",setup:S2=>{
       GEN_POL[g.p][2](S2);GEN_ECON[g.e][1](S2);GEN_WORLD[g.w][1](S2);GEN_PRESS[g.pr][1](S2);GEN_WILD[g.wi][1](S2);}};
-  } else SC=SCENARIOS[cfg.scenario||"fresh"];
+  } else SC=SCENARIOS[cfg.scenario||"real"]||SCENARIOS.real;
+  const PHASE=(SC.phase==="auto"||!SC.phase)?(cfg.party==="lab"?"government":"opposition"):SC.phase;
   const seed=hashStr(cfg.seed||String((Date.now()%1e9)+Math.floor(Math.random()*1e6)));
   const S={
     meta:{pm:cfg.name||"The Leader",party:cfg.party,bg:cfg.bg,scenario:cfg.scenario,difficulty:cfg.difficulty||"standard",
-      month:0,termStart:0,over:false,phase:SC.phase,startYear:2026,startMon:6,seed:cfg.seed||String(seed),rngState:seed,oppMonths:0,govMonths:0,becamePM:SC.phase==="government"},
+      month:0,termStart:(cfg.party==="lab"?-(58-MONTHS_TO_GE):0),over:false,phase:PHASE,startYear:2026,startMon:6,seed:cfg.seed||String(seed),rngState:seed,oppMonths:0,govMonths:0,becamePM:PHASE==="government"},
     pols:{approval:P.app+DF.base,unity:P.unity,capital:50,sleaze:10,pollMe:0,oppName:null,oppStr:50},
     econ:{g:1.4,infl:3.1,unemp:4.3,debt:98,rates:4.25,trust:P.trust,energy:0,invest:0,gdpIdx:100,spendBump:0,revBump:0},
     fiscal:Object.assign({},FISCAL_DEFAULT),
@@ -42,7 +43,7 @@ function newGame(cfg){
     media:{outlets:OUTLETS.map(o=>({id:o.id,n:o.n,kind:o.kind,lean:o.lean,reach:o.reach,stance:o.lean*4}))},
     world:{standing:55,scot:42,war:null,regions:{}},
     mil:{brig:4,car:1,sq:3,cap:0,dep:{}},
-    party:{seats:SC.phase==="government"?P.govSeats:P.oppSeats,
+    party:{seats:(typeof REAL_HOUSE!=="undefined"&&REAL_HOUSE.seats[cfg.party]!==undefined)?REAL_HOUSE.seats[cfg.party]:(PHASE==="government"?P.govSeats:P.oppSeats),
       factions:P.factions.map(f=>({name:f[0],w:f[1],ideal:f[2],leader:f[3],happy:60}))},
     cabinet:[],opp:null,
     flags:{},promises:[],queue:[],cooldowns:{},usedBills:[],pendingBill:null,
@@ -59,13 +60,12 @@ function newGame(cfg){
     return{role:r,name:p[0],app:p[1],base:p[1],comp:p[2],loyal:p[3],cha:p[4]}});
   S.bench=pool.map(p=>({name:p[0],app:p[1],base:p[1],comp:p[2],loyal:p[3],cha:p[4],fav:p[5]}));
   S.pols.oppName=(typeof REAL_LEADERS!=="undefined"&&REAL_LEADERS[PARTIES[cfg.party].rival])||pickR(S,D_FN)+" "+pickR(S,D_LN);
-  if(SC.phase==="opposition"){
-    const govParty=cfg.party==="con"?"lab":(cfg.party==="lab"?"con":pickR(S,["lab","con"]));
-    S.opp={gov:{party:govParty,pm:(typeof REAL_LEADERS!=="undefined"&&REAL_LEADERS[govParty])||pickR(S,D_FN)+" "+pickR(S,D_LN),approval:43,poll:0,fatigue:2.0,lastBlunder:null,monthsIn:30},
-      electionDue:riR(S,28,46),warchest:4};
-    S.pols.pollMe=basePoll(S);S.opp.gov.poll=30;
+  if(PHASE==="opposition"){
+    S.opp={gov:{party:REAL_GOV.party,pm:REAL_GOV.pm,approval:REAL_GOV.approval,poll:0,fatigue:REAL_GOV.fatigue,lastBlunder:null,monthsIn:REAL_GOV.monthsIn},
+      electionDue:MONTHS_TO_GE,warchest:4};
+    S.pols.pollMe=REAL_POLLS_NOW[cfg.party]||10;S.opp.gov.poll=REAL_POLLS_NOW.lab;
   } else {
-    S.pols.pollMe=40;
+    S.pols.pollMe=REAL_POLLS_NOW[cfg.party]||30;
   }
   BGS[cfg.bg].fx(S);
   SC.setup(S);
@@ -93,13 +93,13 @@ function rehydrate(S){ // after JSON load
   Object.defineProperty(S,"fiscalDeficit",{get(){return spendOf(this.fiscal)+this.econ.spendBump-revenueOf(this.fiscal)-this.econ.revBump},configurable:true});
   return S;
 }
-function basePoll(S){const sizes={lab:33,con:30,lib:14,ref:18,grn:9};return sizes[S.meta.party]||20}
+function basePoll(S){return (typeof REAL_POLLS_NOW!=="undefined"&&REAL_POLLS_NOW[S.meta.party])||15}
 function dateStr(S){return ["January","February","March","April","May","June","July","August","September","October","November","December"][S.moy]+" "+S.year}
 
 
 
 /* ---------- manifesto stances & public opinion ---------- */
-const ISSUE_AXIS={mig:["s",1],crime:["s",1],culture:["s",1],eu:["s",1],defence:["s",1],nhs:["e",1],housing:["e",-1],climate:["e",1]};
+const ISSUE_AXIS={mig:["s",1],crime:["s",1],culture:["s",1],eu:["s",1],defence:["s",1],nhs:["e",1],housing:["e",-1],climate:["e",1],econ:["e",1]};
 function initStances(S){
   S.pubop={};S.stance={};
   for(const k in ISSUES){S.pubop[k]=ISSUES[k].pub;
@@ -127,11 +127,8 @@ function tickOpinion(S){
 /* ---------- national polls: one machine feeds HUD, charts and elections ---------- */
 const POLL_PARTIES=["lab","con","lib","ref","grn","res","snp"];
 function initPolls(S){
-  const base={lab:30,con:27,lib:13,ref:16,grn:7,res:5,snp:3};
-  const polls={...base};
   const mine=S.meta.party;
-  if(S.meta.phase==="government")polls[mine]=clamp(24+0.42*S.pols.approval,20,48);
-  else{polls[mine]=basePoll(S);polls[S.opp.gov.party]=30;}
+  const polls={...REAL_POLLS_NOW}; // the country as it actually polls today
   const t=Object.values(polls).reduce((a,b)=>a+b,0);
   for(const k in polls)polls[k]=polls[k]/t*96;
   S.polls=polls;
@@ -142,7 +139,7 @@ function initPolls(S){
 }
 function tickPolls(S){
   const mine=S.meta.party;
-  const base={lab:25,con:23,lib:12,ref:15,grn:7};
+  const base={lab:20,con:16,lib:13,ref:24,grn:10};
   const tgt={};
   if(S.meta.phase==="government"){
     tgt[mine]=clamp(24+0.42*S.pols.approval+stanceBonus(S),16,50);
@@ -158,7 +155,7 @@ function tickPolls(S){
   // Restore Britain feeds on Reform's flank and migration anger
   const refNow=S.polls.ref||14;
   const shift=clamp((refNow-13)*0.25,0,5)+(S.svc.mig>600?1.2:0)+(S.flags.migSalient?0.8:0);
-  tgt.res=clamp(4.5+shift,2.5,13);
+  tgt.res=clamp(2.5+shift,2,13);
   if(tgt.ref!==undefined)tgt.ref=clamp(tgt.ref-shift*0.7,6,50);
   tgt.snp=clamp(3+(S.world.scot-42)/25,1.5,6);
   for(const k of POLL_PARTIES)S.polls[k]=clamp(S.polls[k]+0.22*((tgt[k]??S.polls[k])-S.polls[k])+(S.rng()-.5)*0.9,1,55);
@@ -324,6 +321,38 @@ function tick(S){
   return due;
 }
 
+
+/* ---------- the incident engine: generated month-to-month situations ---------- */
+function genEvent(S){
+  const fams=GE_FAMILIES.filter(f=>!f.phase||f.phase===S.meta.phase);
+  S.recentGen=S.recentGen||[];
+  for(let attempt=0;attempt<14;attempt++){
+    const fam=fams[Math.floor(S.rng()*fams.length)];
+    const pick=arr=>arr[Math.floor(S.rng()*arr.length)];
+    const sevSrc={dept:Math.max(0.6,(S.svc.nhsWait-5)/2+0.6),local:1,petition:0.8+S.rng(),intl:0.8,storm:0.7+S.pols.sleaze/60,celeb:0.8,faction:0.7+(60-S.pols.unity)/40,oppgift:0.8+(45-(S.opp?S.opp.gov.approval:40))/20}[fam.id]||1;
+    const sev=clamp(sevSrc,0.5,2);
+    const built=fam.mk(S,pick,Math.round(sev*10)/10);
+    const sig=fam.id+"|"+built.t2;
+    if(S.recentGen.includes(sig))continue;
+    S.recentGen.push(sig);if(S.recentGen.length>48)S.recentGen.shift();
+    return{id:"gen_"+fam.id,et:fam.et,t:built.t2,b:built.b,gen:true,
+      opts:built.opts.map(o=>({l:o.l,s:o.s,ideo:o.ideo,eff:o.eff,q:(built.t2||"").toUpperCase()}))};
+  }
+  return null;
+}
+function genComboCount(){
+  // honest lower bound on distinct situations the incident engine can produce
+  const dept=GE_DEPTS.length*GE_PLACES.length*GE_FAILS.length;       // 14*48*6
+  const local=GE_PLACES.length*GE_LOCALS.length*GE_EMPLOYERS.length; // 48*8*12 (employer varies the jobs line)
+  const pet=GE_PETS.length*380;                                      // signature counts
+  const intl=(Object.keys(REGIONS).length-2)*GE_INTL.length;
+  const storm=GE_STORMS.length*OUTLETS.length;
+  const celeb=GE_CELEB.length;
+  const fac=3*8*15;
+  const opp=GE_DEPTS.length*GE_PLACES.length*GE_FAILS.length;
+  return dept+local+pet+intl+storm+celeb+fac+opp;
+}
+
 /* ---------- card draw ---------- */
 function drawCard(S){
   const deck=S.meta.phase==="government"?GOV_DECK:OPP_DECK;
@@ -342,9 +371,10 @@ function drawCard(S){
     if(S.flags.byCurse&&(c.id==="byelection"||c.id==="o_byelect"))w*=2.5;
     if(S.flags.royalMoment&&c.id==="honours_row")w*=4;
     tw+=w;return w});
+  if(S.rng()<0.45){const g=genEvent(S);if(g)return g}
   let x=S.rng()*tw;
   for(let i=0;i<pool.length;i++){x-=ws[i];if(x<=0)return pool[i]}
-  return pool[pool.length-1]||deck.find(c=>c.id==="quiet"||c.id==="o_quiet");
+  return genEvent(S)||pool[pool.length-1]||deck.find(c=>c.id==="quiet"||c.id==="o_quiet");
 }
 function adviceFor(S,card){
   if(!card.opts||card.opts.length<2)return null;
@@ -359,7 +389,7 @@ function adviceFor(S,card){
 /* ---------- option resolution ---------- */
 function resolveOption(S,card,idx){
   const o=card.opts[idx];
-  S.flags["used_"+card.id]=true;S.cooldowns[card.id]=S.meta.month+16;
+  if(!card.gen){S.flags["used_"+card.id]=true;S.cooldowns[card.id]=S.meta.month+16;}
   if(card.fx)card.fx(S);
   if(o.special==="offensive"){S.flags["wp"+S.meta.month]=true;return warOffensive(S)}
   if(o.special==="hold"){const w=S.world.war;w.support-=1;S.flags["wp"+S.meta.month]=true;
@@ -375,6 +405,9 @@ function resolveOption(S,card,idx){
       frontPage(S,"CRACKDOWN IN "+nm.toUpperCase(),"Order, of a kind. The cameras find the other kind.")}
     return"occ"}
   applyEffects(S,o.eff);
+  if(card.gen){S.recentTopics=S.recentTopics||[];
+    S.recentTopics.push({label:card.t.toLowerCase(),k:{dept:"nhs",local:"jobs",petition:"sleaze",intl:"war",storm:"sleaze",celeb:"sleaze",faction:"sleaze",oppgift:"jobs"}[card.id.replace("gen_","")]||"jobs",bad:2.2});
+    if(S.recentTopics.length>8)S.recentTopics.shift();}
   let head=o.q,sub="";
   if(head==="__JOKE__"){const hit=S.rng()<0.5+S.mediaIndex/120;
     if(hit){applyEffects(S,{app:3,media:4});head="THE ZINGER LANDS";sub="The clip does 11m views. The other side is, briefly, a meme."}
@@ -577,21 +610,47 @@ function regionAction(S,rid,act){
 
 /* ---------- PMQs ---------- */
 function pmqsTopics(S){
-  const isGov=S.meta.phase==="government";
-  const e=S.econ,v=S.svc;
+  const e2=S.econ,v=S.svc;
+  const ph=(k,i)=>PMQ_PHR[k][(S.meta.month+i)%PMQ_PHR[k].length];
   const cands=[
-    {k:"infl",label:"the cost of living",bad:Math.max(0,e.infl-2)*2},
-    {k:"nhs",label:"NHS waiting lists",bad:Math.max(0,v.nhsWait-5)*2.2},
-    {k:"mig",label:"migration numbers",bad:Math.max(0,v.mig-420)/60},
-    {k:"crime",label:"crime on the streets",bad:Math.max(0,v.crime-98)/4},
-    {k:"jobs",label:"jobs and growth",bad:Math.max(0,4.8-e.g)+Math.max(0,e.unemp-4.5)*2},
-    {k:"sleaze",label:"standards in government",bad:Math.max(0,(isGov?S.pols.sleaze:30)-30)/5},
-    {k:"war",label:"the war",bad:S.world.war?Math.max(0,(60-S.world.war.support))/8:0},
-  ].sort((a,b)=>b.bad-a.bad);
-  return cands.slice(0,3);
+    {k:"infl",label:ph("infl",0),bad:Math.max(0,e2.infl-2)*2},
+    {k:"nhs",label:ph("nhs",1),bad:Math.max(0,v.nhsWait-5)*2.2},
+    {k:"mig",label:ph("mig",2),bad:Math.max(0,v.mig-420)/60},
+    {k:"crime",label:ph("crime",0),bad:Math.max(0,v.crime-98)/4},
+    {k:"jobs",label:ph("jobs",1),bad:Math.max(0,4.8-e2.g)+Math.max(0,e2.unemp-4.5)*2},
+    {k:"sleaze",label:ph("sleaze",2),bad:Math.max(0,(S.meta.phase==="government"?S.pols.sleaze:30)-30)/5},
+  ];
+  if(S.world.war)cands.push({k:"war",label:ph("war",0),bad:Math.max(0,(60-S.world.war.support))/8});
+  // recent generated incidents become ammunition
+  (S.recentTopics||[]).slice(-5).forEach(t=>cands.push({k:t.k||"jobs",label:t.label,bad:t.bad||2.2}));
+  // a rotating static issue or two
+  const iss=Object.keys(ISSUES);
+  for(let i=0;i<2;i++){const k2=iss[(S.meta.month*3+i*4)%iss.length];
+    cands.push({k:PMQ_STATIC_K[k2]||"jobs",label:"the record on "+ISSUES[k2].n.toLowerCase(),bad:1.4+S.rng()});}
+  const pet=GE_PETS[(S.meta.month*7)%GE_PETS.length];
+  cands.push({k:"sleaze",label:"the petition on "+pet,bad:1+S.rng()});
+  // anti-repeat memory, then: the most damaging + two varied picks
+  S.recentPMQ=S.recentPMQ||[];
+  const fresh=cands.filter(c=>!S.recentPMQ.includes(c.label));
+  const pool=(fresh.length>=3?fresh:cands).sort((a,b)=>b.bad-a.bad);
+  const picks=[pool[0]];
+  const rest2=pool.slice(1);
+  while(picks.length<3&&rest2.length){
+    const idx=Math.floor(S.rng()*Math.min(rest2.length,5));
+    picks.push(rest2.splice(idx,1)[0]);}
+  picks.forEach(p=>{S.recentPMQ.push(p.label);if(S.recentPMQ.length>9)S.recentPMQ.shift()});
+  return picks;
+}
+function pmqPoolCount(){
+  let n=0;for(const k in PMQ_PHR)n+=PMQ_PHR[k].length;
+  n+=Object.keys(ISSUES).length+GE_PETS.length;
+  n+=GE_PLACES.length*2; // incident-fed topics: dept + local per place
+  return n;
 }
 function pmqsResolve(S,topicK,style){
-  const topics=pmqsTopics(S);const t=topics.find(x=>x.k===topicK)||topics[0];
+  let t;
+  if(topicK&&typeof topicK==="object")t=topicK;
+  else{const topics=pmqsTopics(S);t=topics.find(x=>x.k===topicK)||topics[0];}
   const sev=t.bad;
   let roll=S.rng();
   if(S.meta.phase==="government"){
@@ -612,6 +671,31 @@ function pmqsResolve(S,topicK,style){
 }
 
 
+
+/* ---------- the spectrum engine: answers move votes between parties ---------- */
+function partyIssuePos(k,iss){const a2=ISSUE_AXIS[iss];if(!a2)return 0;
+  return clamp(PARTIES[k].ideal[a2[0]==="s"?"s":"e"]*a2[1],-2,2)}
+function answerShift(S,iss,pos){
+  if(!iss||!ISSUE_AXIS[iss])return 0;
+  const me=S.meta.party,old=(S.stance&&S.stance[iss])??0;
+  const nw=clamp(old*0.65+pos*0.5,-2,2);
+  const a2=ISSUE_AXIS[iss];
+  applyIdeo(S,a2[0]==="s"?{e:0,s:(nw-old)*0.5}:{e:(nw-old)*0.5,s:0});
+  S.stance[iss]=nw;
+  let gain=0;
+  for(const p of POLL_PARTIES){if(p===me)continue;
+    const tp=partyIssuePos(p,iss);
+    const before=Math.max(0,1.6-Math.abs(old-tp));
+    const after=Math.max(0,1.6-Math.abs(nw-tp));
+    const steal=clamp((after-before)*0.55*((S.polls[p]||5)/16),-1.2,1.2);
+    S.polls[p]=clamp((S.polls[p]||5)-steal,1,55);gain+=steal;}
+  S.polls[me]=clamp((S.polls[me]||20)+gain,1,57);
+  const t=Object.values(S.polls).reduce((x,y)=>x+y,0);
+  for(const k2 of POLL_PARTIES)S.polls[k2]=S.polls[k2]/t*96;
+  S.pols.pollMe=S.polls[me];if(S.opp)S.opp.gov.poll=S.polls[S.opp.gov.party];
+  return gain;
+}
+
 /* ---------- the interview engine ---------- */
 function interviewBuild(S,fmtKey){
   const fmt=INTERVIEW_FORMATS[fmtKey];
@@ -621,14 +705,21 @@ function interviewBuild(S,fmtKey){
   const rest=pool.filter(q=>!sev.includes(q.k));
   for(let i=rest.length-1;i>0;i--){const j=Math.floor(S.rng()*(i+1));[rest[i],rest[j]]=[rest[j],rest[i]]}
   const qs=[...topical,...rest].slice(0,fmt.n).map(q=>({
+    k:q.k,
     q:q.q.replace("%MIG%",String(Math.round(S.svc.mig))).replace("%WEAK%",S.pols.unity<40?"finished":"untested"),
     opts:q.opts}));
   return{fmt:fmtKey,qs};
 }
-function interviewAnswer(S,opt,reach){
-  const eff=opt[1]||{};applyEffects(S,eff);
-  const base=(eff.app||0)+(eff.poll||0)*1.2+(eff.media||0)*0.5+(eff.trustM||0)*0.2;
-  return base+(S.rng()-.5)*2*(opt[2]||0.5);
+function interviewAnswer(S,opt,reach,issueK){
+  const pos=opt[1]||0;
+  const gain=answerShift(S,issueK,pos)*reach;
+  const pub=issueK&&S.pubop?(S.pubop[issueK]||0):0;
+  let score=(1.1-Math.min(2.2,Math.abs(pos*0.8-pub)))+gain*2;
+  if(Math.abs(pos)===2&&S.rng()<0.18){ // strong meat sometimes gets clipped out of context
+    applyEffects(S,{media:-1.6,app:-0.6});score-=1.4;}
+  if(pos===0&&S.rng()<0.10){ // and fence-sitting sometimes reads as evasive
+    applyEffects(S,{media:-0.8});score-=0.6;}
+  return score+(S.rng()-.5)*1.2;
 }
 function interviewFinish(S,fmtKey,score,n){
   const fmt=INTERVIEW_FORMATS[fmtKey];const avg=score/Math.max(n,1);
@@ -803,7 +894,7 @@ function settleElectionLoss(S){
   }
   // lost AS opposition: party patience depends on gains
   const gained=S.pols.pollMe>basePoll(S)+1.5;
-  if(gained){applyEffects(S,{unity:-6,poll:-1});frontPage(S,"CLOSE, BUT","Gains, momentum, a hung-ish parliament — and yet the other side of the door. The party, narrowly, lets you stay.");log(S,"Lost the election; survived as leader");return"survive"}
+  if(gained){S.opp.electionDue=58;applyEffects(S,{unity:-6,poll:-1});frontPage(S,"CLOSE, BUT","Gains, momentum, a hung-ish parliament — and yet the other side of the door. The party, narrowly, lets you stay.");log(S,"Lost the election; survived as leader");return"survive"}
   S.meta.over=true;frontPage(S,"THE PARTY MOVES ON","Defeat without progress is a verdict. The shadow cabinet's tributes are warm enough to be insulting.");log(S,"Deposed after election defeat");return"deposed";
 }
 
@@ -841,6 +932,19 @@ function coalitionAnalysis(rows){
 }
 function setHouse(S,R){S.house={rows:JSON.parse(JSON.stringify(R.rows)),regions:JSON.parse(JSON.stringify(R.regions||[])),when:dateStr(S)}}
 function makeInitialHouse(S){
+  if(typeof REAL_HOUSE!=="undefined"){
+    const order=[...REAL_HOUSE.order];
+    const rows=order.map(k=>({n:PARTIES[k].name+(k===S.meta.party?" (you)":(k===REAL_GOV.party&&S.meta.party!==REAL_GOV.party?" (gov)":"")),
+      key:k,c:PARTIES[k].col,seats:REAL_HOUSE.seats[k],you:k===S.meta.party}));
+    rows.push({n:REAL_HOUSE.othLabel,key:"ni",c:"#777",seats:REAL_HOUSE.seats.oth});
+    const regions=ELECT_REGIONS.map(([key,label,seats])=>{
+      const br=REAL_HOUSE.regions[key].slice();
+      let wi=0;br.forEach((s2,i)=>{if(s2>br[wi])wi=i});
+      const youIdx=order.indexOf(S.meta.party);
+      return{key,label,seats,winner:rows[wi].n,col:rows[wi].c,mine:youIdx>=0?br[youIdx]:0,breakdown:br};});
+    setHouse(S,{rows,regions});
+    return;
+  }
   const R=projectElection(S);
   const youIdx=0;
   let diff=S.party.seats-R.rows[youIdx].seats;
@@ -917,7 +1021,7 @@ function nextInteraction(S){
 }
 
 /* ---------- exports ---------- */
-const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
+const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
   computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,

@@ -41,17 +41,14 @@ const WIZ=[["The scenario","Where does your story begin?"],
            ["Sign here","Name yourself, check the ballot paper, take the stage."]];
 function startWizard(){cfg={scenario:null,difficulty:null,party:null,bg:null,seed:null};wizStep=0;show("#scr-setup");renderWiz()}
 function partyStatLine(sc,p){
-  const mj=p.govSeats*2-650;
-  if(sc==="gen"&&cfg.gen)return (GEN_POL[cfg.gen.p][1]==="government"?"IN POWER · ":"OPPOSITION · ")+GEN_ECON[cfg.gen.e][0]+" · "+GEN_POL[cfg.gen.p][0];
-  switch(sc){
-    case"fresh":return"IN POWER · majority "+mj+" · unity "+p.unity;
-    case"landslide":return"IN POWER · landslide majority 180 · expectations: brutal";
-    case"sterling":return"IN POWER · majority "+mj+" · inflation 9.8% · markets at 28/100";
-    case"coldwind":return"IN POWER · majority "+mj+" · Moscow probing · defence gutted";
-    case"minority":return"IN POWER · NO MAJORITY — 316 seats · confidence & supply";
-    case"knife":return"OPPOSITION · "+p.oppSeats+" seats · polls level · election due within 18 months";
-    default:return"OPPOSITION · "+p.oppSeats+" seats · "+(326-p.oppSeats)+" more needed for a majority";
-  }
+  const k=Object.keys(PARTIES).find(x=>PARTIES[x]===p);
+  const seats=(typeof REAL_HOUSE!=="undefined")?REAL_HOUSE.seats[k]:p.oppSeats;
+  const poll=(typeof REAL_POLLS_NOW!=="undefined")?REAL_POLLS_NOW[k]:10;
+  const base=k==="lab"
+    ?"IN POWER · "+seats+" seats · majority "+(seats*2-650)+" · polling "+poll+"%"
+    :"OPPOSITION · "+seats+" seat"+(seats===1?"":"s")+" · polling "+poll+"% · facing Starmer";
+  if(sc==="gen"&&cfg.gen)return base+" · "+GEN_ECON[cfg.gen.e][0];
+  return base;
 }
 
 /* ---------- the scenario forge: 6,720 generated setups ---------- */
@@ -68,7 +65,7 @@ function renderForge(){
   $("#forge").innerHTML=`<div class="opt forgecard ${cfg.scenario==="gen"&&cfg.gen&&cfg.gen.n===g.n?"sel":""}">
     <h4>⚒ THE SCENARIO FORGE <span class="dim small">· one of 6,720</span></h4>
     <p><b class="num">#${String(g.n).padStart(4,"0")}</b> — ${bits.join(" · ")}</p>
-    <div class="stats">START: ${GEN_POL[g.p][1]==="government"?"IN POWER":"OPPOSITION"}</div>
+    <div class="stats">MODIFIERS ON THE JULY 2026 BASELINE</div>
     <div class="menu tight"><button class="btn small" id="forge-play">Play this one</button>
      <button class="btn ghost small" id="forge-roll">⟳ Forge another</button>
      <input class="forgenum num" id="forge-num" value="${g.n}" maxlength="4"></div></div>`;
@@ -93,7 +90,7 @@ function renderWiz(){
     const sc=$("#pickscenario");
     for(const[k,s]of Object.entries(SCENARIOS)){
       const d=document.createElement("div");d.className="opt"+(cfg.scenario===k?" sel":"");
-      d.innerHTML=`<h4>${s.name}</h4><p>${s.desc}</p><div class="stats">${s.phase==="government"?"START: IN POWER":"START: OPPOSITION"}</div>`;
+      d.innerHTML=`<h4>${s.name}</h4><p>${s.desc}</p><div class="stats">${k==="real"?"THE BASELINE — JULY 2026, AS IT IS":"MODIFIER ON THE JULY 2026 BASELINE"}</div>`;
       d.onclick=pickAndGo(()=>{if(cfg.scenario!==k)cfg.party=null;cfg.scenario=k});sc.appendChild(d);}
     renderForge();
   }else if(wizStep===1){
@@ -104,12 +101,12 @@ function renderWiz(){
       d.onclick=pickAndGo(()=>cfg.difficulty=k);df.appendChild(d);}
   }else if(wizStep===2){
     B.innerHTML=`<div class="pick" id="pickparty"></div>`;const pp=$("#pickparty");
-    const isOpp=cfg.scenario==="gen"?GEN_POL[cfg.gen.p][1]==="opposition":SCENARIOS[cfg.scenario].phase==="opposition";
+    
     for(const[k,p]of Object.entries(PARTIES)){
       if(p.aiOnly)continue;
       const d=document.createElement("div");d.className="opt"+(cfg.party===k?" sel":"");
       d.innerHTML=`<h4><span class="sw" style="background:${p.col}"></span>${p.name}</h4>
-        <p>${isOpp?(p.oppBlurb||p.blurb):(p.blurb||p.oppBlurb)}</p>
+        <p>${k==="lab"?(p.blurb||p.oppBlurb):(p.oppBlurb||p.blurb)}</p>
         <div class="stats">${partyStatLine(cfg.scenario,p)}</div>`;
       d.onclick=pickAndGo(()=>cfg.party=k);pp.appendChild(d);}
   }else if(wizStep===3){
@@ -814,7 +811,7 @@ function startInterview(fmtKey){
      <div class="opts">${q.opts.map((o,i)=>`<button class="choice quote" data-i="${i}">${o[0]}</button>`).join("")}</div>
      <div class="perfbar"><div style="width:${clampPct(50+score*8)}%"></div></div>`,true);
     $$("#modal .choice").forEach(c=>c.onclick=()=>{
-      score+=E.interviewAnswer(S,q.opts[+c.dataset.i],f.reach);qi++;ask()});
+      score+=E.interviewAnswer(S,q.opts[+c.dataset.i],f.reach,q.k);qi++;ask()});
   };
   ask();
 }
@@ -888,16 +885,16 @@ function openPMQs(){
     modal(`<div class="lbl gold">Prime Minister's Questions · ${E.dateStr(S)}</div>
      <h3>You get six questions. What do you go after?</h3>
      <div class="body">Pick the government's weakest spot — the worse it is for them, the more you gain.</div>
-     <div class="opts">${topics.map(t=>`<button class="choice" data-k="${t.k}">${t.label}<small>how bad it is for them: ${t.bad>6?"very":t.bad>3?"quite":"mildly"}</small></button>`).join("")}</div>`,true);
+     <div class="opts">${topics.map((t,ti)=>`<button class="choice" data-ti="${ti}">${t.label}<small>how bad it is for them: ${t.bad>6?"very":t.bad>3?"quite":"mildly"}</small></button>`).join("")}</div>`,true);
     $$("#modal .choice").forEach(b2=>b2.onclick=()=>{
-      const k=b2.dataset.k;
-      modal(`<div class="lbl gold">PMQs — ${topics.find(x=>x.k===k).label}</div><h3>How do you go at them?</h3>
+      const ti=+b2.dataset.ti;const tobj=topics[ti];
+      modal(`<div class="lbl gold">PMQs — ${tobj.label}</div><h3>How do you go at them?</h3>
        <div class="opts">
         <button class="choice" data-s="forensic">Pin them down with detail<small>Reliable damage, no fireworks</small></button>
         <button class="choice" data-s="theatrical">Go for the soundbite<small>One brutal line for the news — riskier</small></button>
         <button class="choice" data-s="statesman">Stay statesmanlike<small>Look like a PM-in-waiting</small></button>
        </div>`,true);
-      $$("#modal .choice").forEach(c=>c.onclick=()=>{const b4=snapStats();E.pmqsResolve(S,k,c.dataset.s);closeModal();toastDiff(b4);renderAll();save();done()});
+      $$("#modal .choice").forEach(c=>c.onclick=()=>{const b4=snapStats();E.pmqsResolve(S,tobj,c.dataset.s);closeModal();toastDiff(b4);renderAll();save();done()});
     });
   }
 }

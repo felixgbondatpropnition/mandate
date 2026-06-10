@@ -43,27 +43,19 @@ function click(el, what) {
     const n1=$("#forge-num").value; click($("#forge-roll"), "forge reroll"); 
     assert($("#forge-num").value!==n1 || true, "forge rerolled");
 
-    // coherence: Coalition of Chaos must show NO MAJORITY on party cards
-    click([...$$("#pickscenario .opt")].find(o => /Coalition of Chaos/i.test(o.textContent)), "minority scenario");
-    await sleep(260);
-    assert($("#pickdiff"), "step 2 difficulty");
-    click($$("#pickdiff .opt")[0], "difficulty");
-    await sleep(260);
-    assert($("#pickparty"), "step 3 parties");
-    assert(/NO MAJORITY — 316/.test($("#pickparty").textContent), "minority scenario reflected on party cards");
-
-    // back to scenario, choose fresh majority instead
-    click($("#bt-wizback"), "back to diff"); click($("#bt-wizback"), "back to scenario");
-    assert($("#pickscenario"), "back at step 1");
-    click($$("#pickscenario .opt")[0], "fresh scenario");
+    // REALITY BASELINE: party cards carry the real July 2026 numbers
+    click([...$$("#pickscenario .opt")].find(o => /Britain, As Found/i.test(o.textContent)), "real baseline");
     await sleep(260);
     click($$("#pickdiff .opt")[1], "standard difficulty");
     await sleep(260);
     const pTxt = $("#pickparty").textContent;
     assert(!/Green/.test(pTxt), "Green must not be pickable");
-    assert(!/SNP/.test(pTxt), "SNP must not be pickable");
-    assert(/majority 72/.test(pTxt), "fresh scenario shows real majority");
-    click($$("#pickparty .opt")[0], "party (Labour)");
+    assert(!/SNP\b/.test(pTxt), "SNP must not be pickable");
+    assert(/404 seats/.test(pTxt) && /majority 158/.test(pTxt), "Labour shows the real 404 / majority 158");
+    assert(/12 seats/.test(pTxt), "Reform shows its real 12 seats");
+    assert(/1 seat ·/.test(pTxt), "Restore shows its single real seat");
+    assert(/polling 28%/.test(pTxt), "Reform polling matches reality");
+    click($$("#pickparty .opt")[0], "party (Labour — the real government)");
     await sleep(260);
     const bTxt = $("#pickbg").textContent;
     assert(/Successful entrepreneur/.test(bTxt), "entrepreneur background present");
@@ -139,7 +131,7 @@ function click(el, what) {
 
     // campaign: manifesto stances + target a region
     click($('#gametabs button[data-t="campaign"]'), "campaign tab");
-    assert($$("#tab-campaign [data-st]").length === 8, "eight manifesto sliders");
+    assert($$("#tab-campaign [data-st]").length === 9, "nine manifesto sliders");
     const st=$$("#tab-campaign [data-st]")[0]; st.value="1"; st.dispatchEvent(new w.Event("input",{bubbles:true}));
     click($("#bt-positions"), "set government line");
     click($$("#tab-campaign [data-tr]")[1], "target region");
@@ -148,6 +140,8 @@ function click(el, what) {
     click($('#gametabs button[data-t="media"]'), "press tab");
     assert($$("#tab-media [data-iv]").length === 3, "three interview formats");
     click($$("#tab-media [data-iv]")[0], "go on the sofa");
+    await sleep(30);
+    assert($$("#modal .choice.quote").length === 5, "five spectrum answers per question");
     for(let qq=0; qq<12 && $("#modal").classList.contains("on"); qq++){
       const opt=$$("#modal .choice.quote")[0];
       if(opt){click(opt,"quoted answer");await sleep(25);continue;}
@@ -197,12 +191,12 @@ function click(el, what) {
     const q = sel => d2.querySelector(sel), qq = sel => [...d2.querySelectorAll(sel)];
     const click2 = (el, what) => { if (!el) throw new Error("opp missing: " + what); el.dispatchEvent(new w2.MouseEvent("click", { bubbles: true })); };
     click2(q("#bt-new"), "new");
-    click2([...qq("#pickscenario .opt")].find(o => /Wilderness/i.test(o.textContent)), "wilderness");
+    click2([...qq("#pickscenario .opt")].find(o => /Britain, As Found/i.test(o.textContent)), "real baseline opp");
     await sleep(260);
     click2(qq("#pickdiff .opt")[0], "gentle");
     await sleep(260);
     assert(/OPPOSITION ·/.test(q("#pickparty").textContent), "opposition stat lines");
-    assert(/more needed for a majority/.test(q("#pickparty").textContent), "the mountain shown");
+    assert(/facing Starmer/.test(q("#pickparty").textContent), "real government named on the cards");
     assert(/Restore Britain/.test(q("#pickparty").textContent), "Restore Britain playable");
     click2([...qq("#pickparty .opt")].find(o => /Restore Britain/i.test(o.textContent)), "restore");
     await sleep(260);

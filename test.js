@@ -23,7 +23,7 @@ function R(){return Math.random()}
 
 const endings={},counts={events:0,pmqs:0,budgets:0,elections:0,bills:0,regions:0,wars:0,conf:0,phaseSwapsToGov:0,phaseSwapsToOpp:0};
 const legacies=[];let errors=0,runs=0;
-const parties=["lab","con","lib","ref","grn"],bgs=Object.keys(D.BGS),scens=Object.keys(D.SCENARIOS),diffs=Object.keys(D.DIFFS);
+const bgs=Object.keys(D.BGS),scens=Object.keys(D.SCENARIOS),diffs=Object.keys(D.DIFFS);
 
 const MATRIX=[];
 const PL=["lab","con","lib","ref","res"];
@@ -38,6 +38,15 @@ for(let i=0;i<30;i++){
   MATRIX.push({party:PL[i%PL.length],bg:bgs[i%bgs.length],scenario:"gen",gen,difficulty:diffs[i%diffs.length],seed:"forge-"+n,name:"ForgeBot "+n});
 }
 
+// baseline sanity before the fleet
+{const SB=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'base',name:'B'});
+ if(SB.party.seats!==404||SB.meta.phase!=="government")throw new Error("Labour baseline wrong");
+ const SR=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'base2',name:'B'});
+ if(SR.party.seats!==12||SR.opp.gov.pm!=="Keir Starmer"||SR.opp.electionDue!==38)throw new Error("Reform baseline wrong");
+ if(Math.round(SR.polls.ref)<26)throw new Error("Reform polling baseline wrong");
+ if(E.pmqPoolCount()<100)throw new Error("PMQ pool under 100");
+ const labels=new Set();for(let i=0;i<10;i++){E.tick(SR);E.pmqsTopics(SR).forEach(x=>labels.add(x.label))}
+ if(labels.size<12)throw new Error("PMQ topics not rotating: "+labels.size);}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);
@@ -77,7 +86,7 @@ for(const cfg of MATRIX){
       if(R()<0.06&&S.pols.capital>30){
         const fmts=["sofa","night","radio"];const fk=fmts[Math.floor(R()*3)];
         const iv=E.interviewBuild(S,fk);let sc2=0;
-        iv.qs.forEach(q=>{sc2+=E.interviewAnswer(S,q.opts[Math.floor(R()*q.opts.length)],1)});
+        iv.qs.forEach(q=>{sc2+=E.interviewAnswer(S,q.opts[Math.floor(R()*q.opts.length)],1,q.k)});
         E.interviewFinish(S,fk,sc2,iv.qs.length);counts.interviews=(counts.interviews||0)+1}
       if(S.meta.phase==="opposition"&&R()<0.05&&S.pols.capital>20){
         const av=D.BILLS.filter(b=>!S.usedBills.includes(b.id));
@@ -119,7 +128,7 @@ for(const cfg of MATRIX){
           counts.phaseSwapsToOpp+= S.meta.phase==="opposition"&&phaseBefore==="government"?1:0;}
         continue}
       // event
-      counts.events++;const card=it.card;
+      counts.events++;if(it.card&&it.card.gen)counts.generated=(counts.generated||0)+1;const card=it.card;
       if(!card||!card.opts||!card.opts.length)throw new Error("bad card "+(card&&card.id));
       if(S.world.war)counts.wars++;
       E.resolveOption(S,card,Math.floor(R()*card.opts.length));
@@ -140,5 +149,7 @@ console.log("\n=== MANDATE v2 fleet ===");
 console.log("runs ok:",runs,"/",MATRIX.length,"errors:",errors);
 console.log("endings:",JSON.stringify(endings));
 console.log("counts:",JSON.stringify(counts));
+console.log("incident-engine space:",E.genComboCount().toLocaleString());
 if(legacies.length)console.log("legacy: min",legacies[0],"p25",legacies[Math.floor(legacies.length*.25)],"med",legacies[Math.floor(legacies.length*.5)],"p75",legacies[Math.floor(legacies.length*.75)],"max",legacies[legacies.length-1]);
+if(E.genComboCount()<10000){console.error("FAIL: situation space under 10k");process.exit(1)}
 process.exit(errors?1:0);
