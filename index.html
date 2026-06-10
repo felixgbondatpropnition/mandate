@@ -25,7 +25,7 @@
       <button class="btn ghost" id="bt-continue" disabled>Continue</button>
       <button class="btn ghost" id="bt-method">The maths</button>
     </div>
-    <div class="seedline">v2.0 — opposition careers · world board · treasury · divisions · scenarios</div>
+    <div class="seedline">v3.0 — the corridors · real cabinets · invasions · debates · the electoral map</div>
   </div>
 
   <!-- SETUP WIZARD -->
@@ -59,12 +59,14 @@
     <div class="tickerbar"><div class="tickerin" id="tickerin"></div></div>
 
     <div class="gametabs" id="gametabs">
-      <button data-t="overview" class="on">Overview</button>
+      <button data-t="hub" class="on">Corridors</button>
+      <button data-t="office">Office</button>
+      <button data-t="cabinet">Cabinet</button>
       <button data-t="treasury">Treasury</button>
-      <button data-t="parliament">Parliament</button>
-      <button data-t="world">World</button>
-      <button data-t="party">Party</button>
-      <button data-t="media">Media</button>
+      <button data-t="commons">Commons</button>
+      <button data-t="world">Situation</button>
+      <button data-t="media">Press</button>
+      <button data-t="campaign">Campaign HQ</button>
     </div>
 
     <div class="advbar">
@@ -73,12 +75,14 @@
       <button class="btn ghost small" id="bt-abandon" style="margin-left:auto">Abandon</button>
     </div>
 
-    <div class="tabpane on" id="tab-overview"><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div></div>
+    <div class="tabpane on" id="tab-hub"></div>
+    <div class="tabpane" id="tab-office"><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div></div>
+    <div class="tabpane" id="tab-cabinet"></div>
     <div class="tabpane" id="tab-treasury"></div>
-    <div class="tabpane" id="tab-parliament"></div>
+    <div class="tabpane" id="tab-commons"></div>
     <div class="tabpane" id="tab-world"></div>
-    <div class="tabpane" id="tab-party"></div>
     <div class="tabpane" id="tab-media"></div>
+    <div class="tabpane" id="tab-campaign"></div>
   </div>
 
   <!-- ENDING -->
@@ -102,7 +106,7 @@
 <div class="toastwrap" id="toasts"></div>
 
 <footer>
-  <span>MANDATE v2.0 · a maths game wearing a rosette · headless-tested before every release</span>
+  <span>MANDATE v3.0 · a maths game wearing a rosette · headless-tested before every release</span>
   <div class="sharebar"><input class="shareurl" id="shareurl" readonly value="https://felixgbondatpropnition.github.io/mandate/">
   <button class="btn" style="padding:10px 18px" id="copybtn">Copy link</button></div>
 </footer>

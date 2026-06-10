@@ -16,6 +16,7 @@ function check(S,w){
   if(S.party.seats<0||S.party.seats>650)throw new Error("seats "+S.party.seats);
   for(const k in S.world.regions)fin(S.world.regions[k].rel,w+" rel "+k);
   Object.values(S.svc).forEach(v=>fin(v,w+" svc"));
+  S.cabinet.forEach(m=>fin(m.app,w+" minister"));
 }
 function R(){return Math.random()}
 
@@ -26,7 +27,7 @@ const parties=["lab","con","lib","ref","grn"],bgs=Object.keys(D.BGS),scens=Objec
 const MATRIX=[];
 for(let i=0;i<140;i++){
   let sc=scens[i%scens.length];
-  let party=sc==="longroad"?"snp":parties[i%parties.length];
+  let party=parties[i%parties.length];
   MATRIX.push({party,bg:bgs[i%bgs.length],scenario:sc,difficulty:diffs[i%diffs.length],seed:"fleet-"+i,name:"Bot "+i});
 }
 
@@ -59,6 +60,13 @@ for(const cfg of MATRIX){
         const rids=Object.keys(D.REGIONS);
         const acts=S.meta.phase==="government"?["summit","trade","sanction","aid","covert","deploy","recall","carrier"]:["summit"];
         E.regionAction(S,rids[Math.floor(R()*rids.length)],acts[Math.floor(R()*acts.length)]);counts.regions++}
+      if(S.meta.phase==="government"&&!S.world.war&&R()<0.04&&S.pols.capital>40){
+        const rids=Object.keys(D.REGIONS).filter(k=>k!=="uk"&&k!=="southatl");
+        const r=E.regionAction(S,rids[Math.floor(R()*rids.length)],"invade");
+        if(r&&r.hague){endKind="hague";break}
+        counts.invasions=(counts.invasions||0)+1}
+      if(S.meta.phase==="government"&&R()<0.05&&(S.bench||[]).length&&S.pols.capital>20){
+        E.swapMinister(S,Math.floor(R()*S.cabinet.length),Math.floor(R()*S.bench.length));counts.swaps=(counts.swaps||0)+1}
       if(S.meta.phase==="government"&&R()<0.07&&S.pols.capital>10){
         const f=Object.assign({},S.fiscal);f.basic=Math.round(D.FISCAL_META.basic.min+R()*(D.FISCAL_META.basic.max-D.FISCAL_META.basic.min));
         f.nhs=+(D.FISCAL_META.nhs.min+R()*(D.FISCAL_META.nhs.max-D.FISCAL_META.nhs.min)).toFixed(1);
@@ -79,13 +87,6 @@ for(const cfg of MATRIX){
         E.pmqsResolve(S,t[Math.floor(R()*t.length)].k,styles[Math.floor(R()*styles.length)]);continue}
       if(it.type==="election"){counts.elections++;delete S.flags._electionNow;
         const res=E.computeElection(S,R()*6-2);
-        if(res.scotland){
-          S.party.seats=res.snp;S.meta.termStart=S.meta.month;
-          if(res.snp>=45&&S.world.scot>=58){S.score.electionsWon++;E.applyEffects(S,{queue:[{m:6,eff:null,head:"__INDYREF__"}]});}
-          else if(res.snp>=45){E.applyEffects(S,{scot:8});}
-          else E.applyEffects(S,{unity:-8});
-          if(S.opp)S.opp.electionDue=58;
-          continue}
         const mine=res.rows[0].seats,maj=mine*2-650;
         if(maj>0){E.settleElectionWin(S,mine);if(S.meta.phase==="government"&&phaseBefore==="opposition")counts.phaseSwapsToGov++}
         else if(mine>=Math.max(...res.rows.slice(1,-2).map(r=>r.seats))&&R()<0.5){E.settleElectionWin(S,322);S.flags.minority=true}

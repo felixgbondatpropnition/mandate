@@ -41,7 +41,8 @@ const PARTIES={
    region:{north:.9,mid:.85,lon:1.3,south:1.1,scot:.9,wales:1.0},
    rival:"lab",blurb:"The flooded summer changed everything. You promised a different civilisation; the Treasury would settle for a solvent one.",
    oppBlurb:"Thirty-two seats, one planet. Turn weather into votes without becoming the people who shout at boilers."},
- snp:{name:"SNP",col:"#e8d44d",ideal:{e:-.9,s:-.5},
+
+ snp:{name:"SNP",col:"#e8d44d",aiOnly:true,ideal:{e:-.9,s:-.5},
    govSeats:0,oppSeats:48,unity:60,trust:50,app:46,
    factions:[["Fundamentalists",.35,{e:-.9,s:-.6},"Effie Brodie"],["Gradualists",.40,{e:-.8,s:-.4},"Alasdair Rennie"],["The New Guard",.25,{e:-1.1,s:-.7},"Zara Aziz"]],
    region:{north:0,mid:0,lon:0,south:0,scot:3.2,wales:0},
@@ -64,6 +65,10 @@ const BGS={
    fx:S=>{S.media.outlets.forEach(o=>o.stance+=10);S.pols.sleaze+=8}},
  spad:{name:"Career special adviser",blurb:"You have never had a real job and you are magnificent at it.",stats:"capital +15",
    fx:S=>{S.pols.capital+=15}},
+ tycoon:{name:"Successful entrepreneur",blurb:"You built something real, sold it for something unreal, and now want the hardest turnaround job in Britain.",stats:"markets +8 · capital +5 · invest +0.3 · sleaze +4",
+   fx:S=>{S.econ.trust+=8;S.pols.capital+=5;S.econ.invest+=0.3;S.pols.sleaze+=4}},
+ lifer:{name:"Career politician",blurb:"Council at 21, Parliament at 29, never lost a selection battle. You know where every body is buried because you attended the funerals.",stats:"unity +8 · capital +10",
+   fx:S=>{S.party.factions.forEach(f=>f.happy+=5);S.pols.capital+=10}},
 };
 
 /* ---------- difficulties ---------- */
@@ -89,8 +94,6 @@ const SCENARIOS={
    setup:S=>{S.world.regions.russia.rel=-85;S.flags.baltic2soon=true;S.mil.cap=0;S.fiscal.def=1.9;S.world.standing-=6}},
  minority:{name:"Coalition of Chaos",phase:"government",desc:"No majority. A confidence-and-supply partner with a shopping list. Every division is a cliffhanger and the whips' office has installed a defibrillator.",
    setup:S=>{S.party.seats=316;S.flags.minority=true;S.pols.capital-=10}},
- longroad:{name:"The Long Road (SNP)",phase:"opposition",snpOnly:true,desc:"Lead the SNP. You cannot take No. 10 — you can take Scotland out from under it. Build the mandate, force the referendum, win it. History is watching from Arbroath.",
-   setup:S=>{S.world.scot=46}},
 };
 
 /* ---------- world regions (Situation Board) ---------- */
@@ -359,14 +362,15 @@ const GOV_DECK=[
  {l:"Managed mergers, no new money",s:"Let Darwin lecture",ideo:{e:1,s:.3},eff:{app:-2,queue:[{m:6,eff:{app:-2},head:"Campus closes in a marginal. Awkward."}]},q:"DEGREES OF FAILURE"}]},
 /* --- sleaze & party --- */
 {id:"scandal_money",w:8,et:"Scandal",t:"The Minister and the money",
- b:S=>{const m=S.cabinet[Math.floor(S.rng()*S.cabinet.length)];S.flags._scN=m.name;S.flags._scR=m.role;
-  return `${m.name}, your ${m.role}, 'forgot' to declare £240,000 from a firm that later won a contract. The receipts are in a shoebox, and the shoebox is on the front page.`},
+ b:S=>{const j=D_FN[Math.floor(S.rng()*D_FN.length)]+" "+D_LN[Math.floor(S.rng()*D_LN.length)];
+  return `${j}, your Parliamentary Under-Secretary for Procurement, 'forgot' to declare £240,000 from a firm that later won a contract. The receipts are in a shoebox, and the shoebox is on the front page.`},
  opts:[
  {l:"Sack them within the hour",s:"Brutal hygiene",eff:{app:2,unity:-5,capital:-4,scandal:1},q:"GONE BY LUNCH"},
  {l:"'Independent ethics review'",s:"Buy three weeks",eff:{sleaze:8,queue:[{m:2,eff:{app:-4,unity:-3,scandal:1},head:"Review damns minister; sacked anyway, slower."}]},q:"REVIEW, THEN REGRET"},
  {l:"Full-throated defence",s:"Loyalty is a currency. So is approval.",eff:{app:-4,unity:4,sleaze:12,media:-4},q:"PM STANDS BY THE SHOEBOX"}]},
 {id:"scandal_affair",w:6,et:"Scandal",t:"CCTV from the kitchenette",
- b:S=>{const m=S.cabinet[Math.floor(S.rng()*S.cabinet.length)];return `${m.name} and a junior aide, on camera, in breach of the dignity of the departmental kitchenette. The Ledger has stills; the Mercury has the catering invoice.`},
+ b:S=>{const j=D_FN[Math.floor(S.rng()*D_FN.length)]+" "+D_LN[Math.floor(S.rng()*D_LN.length)];
+  return `${j}, a junior minister of yours, and an aide, on camera, in breach of the dignity of the departmental kitchenette. The Ledger has stills; the Mercury has the catering invoice.`},
  opts:[
  {l:"Resignation by mutual agreement",s:"Swift and Victorian",eff:{app:1,scandal:1,unity:-2},q:"EXIT, PURSUED BY A TABLOID"},
  {l:"'A private matter'",s:"It will not stay one",eff:{sleaze:10,media:-5,queue:[{m:1,eff:{app:-3,scandal:1},head:"Second kitchenette emerges."}]},q:"PRIVATE MATTER, PUBLIC PRINTER"}]},
@@ -531,6 +535,14 @@ const GOV_DECK=[
  {l:"Major offensive — end this",s:"Roll the iron dice",special:"offensive"},
  {l:"Hold positions, grind",s:"Attrition, theirs and yours",special:"hold"},
  {l:"Open negotiations",s:"Talk while shooting",special:"negotiate"}]},
+{id:"occ_unrest",w:0,forced:S=>{const occ=Object.keys(S.world.regions).filter(k=>S.world.regions[k].occupied);
+  if(!occ.length||S.flags["occq"+S.meta.month]||S.meta.month%3!==1)return false;S.flags._occT=occ[0];S.flags["occq"+S.meta.month]=true;return true},
+ et:"OCCUPATION",t:"Trouble in the occupied zone",
+ b:S=>`Month after month, ${REGIONS[S.flags._occT].n} declines to enjoy being administered. An IED, a general strike, a viral funeral. The occupation costs money, soldiers and the benefit of every doubt.`,
+ opts:[
+ {l:"Withdraw with ceremony",s:"End it; eat the humiliation",special:"occ_withdraw"},
+ {l:"Install a friendly government",s:"Sovereignty, supervised",special:"occ_puppet"},
+ {l:"Iron fist",s:"Order now, history later",special:"occ_fist"}]},
 {id:"quiet",w:5,et:"Westminster",t:"A quiet month, allegedly",
  b:()=>"No crisis worthy of the name. A minister opens a bridge. A swan delays a bypass. You sleep almost six hours and wake suspicious.",
  opts:[
@@ -574,16 +586,6 @@ const GOV_DECK=[
    extra eff keys: poll (your poll share), gov{app: hits govt approval}, chest (warchest £m)
    ===================================================================== */
 const OPP_DECK=[
-{id:"o_snp_grievance",w:5,cond:S=>S.meta.party==="snp",et:"The grievance machine",t:"Westminster does you a favour",
- b:()=>"The Chancellor's new funding framework allocates Scotland a share best described as 'insulting, with footnotes'. The minister calls it 'generous' on camera. The clip plays on loop north of the border.",
- opts:[
- {l:"Harvest it — rallies, billboards, the works",s:"Grievance is renewable energy",eff:{scot:2.5,media:-2,capital:2},q:"SCOTLAND SHORT-CHANGED, AGAIN"},
- {l:"Forensic, sorrowful, devastating",s:"Win the neutrals",eff:{scot:2,app:2},q:"THE QUIET CASE FOR YES"}]},
-{id:"o_snp_energy",w:4,cond:S=>S.meta.party==="snp",et:"Resources",t:"Scotland's wind, London's meter",
- b:()=>"A record renewables quarter — generated in Scottish waters, priced in London, billed back at a premium. Your researchers have a chart. The chart is a weapon.",
- opts:[
- {l:"'It's Scotland's energy' campaign",s:"The North Sea playbook, electrified",eff:{scot:3,media:-2},q:"WHOSE WIND IS IT ANYWAY"},
- {l:"Demand a joint sovereign wealth fund",s:"Constructive, with a blade in it",eff:{scot:2,app:2,trustM:2},q:"THE FUND GAMBIT"}]},
 {id:"o_shadowbudget",w:7,et:"The reply",t:"Budget day — your reply",
  b:S=>`The Chancellor sits down to cheers. You rise with four minutes' notice and a choice: numbers, theatre, or the long game. The government's deficit is ${S.fiscalDeficit.toFixed(1)}% and everyone knows it.`,
  opts:[
@@ -674,6 +676,30 @@ const OPP_DECK=[
  {l:"Urgent question + media round",s:"The full press",eff:{gov:{app:-2},poll:.7,capital:-2},q:"OPPOSITION SMELLS BLOOD"},
  {l:"Hold fire; let it burn alone",s:"Never interrupt an enemy…",eff:{gov:{app:-1},capital:2},q:"SILENCE FROM THE BENCHES, LOUDLY"}]},
 ];
+
+
+/* ---------- the talent: real figures per party (neutral stats; they drift) ---------- */
+const REAL_POLS={
+ lab:[["Rachel Reeves",38,78,62,48,"Chancellor"],["Wes Streeting",42,74,55,68,"Health Sec."],["Angela Rayner",46,62,58,72,"Home Sec."],["Yvette Cooper",41,76,70,46,"Home Sec."],["Ed Miliband",40,66,72,55,"Energy Sec."],["John Healey",39,71,78,40,"Defence Sec."],["Bridget Phillipson",36,65,68,45,"Education Sec."],["Shabana Mahmood",37,70,60,50,"Home Sec."],["Pat McFadden",33,75,80,32,"Chief Whip"],["Liz Kendall",30,60,62,38,"Education Sec."],["Lisa Nandy",35,58,55,52,"Foreign Sec."],["Darren Jones",34,68,64,46,"Chancellor"]],
+ con:[["Jeremy Hunt",37,74,60,42,"Chancellor"],["James Cleverly",41,66,58,60,"Foreign Sec."],["Robert Jenrick",36,62,40,52,"Home Sec."],["Priti Patel",34,58,48,50,"Home Sec."],["Tom Tugendhat",40,68,55,54,"Defence Sec."],["Victoria Atkins",35,64,62,44,"Health Sec."],["Mel Stride",33,70,68,36,"Chancellor"],["Suella Braverman",30,52,30,55,"Home Sec."],["Laura Trott",34,63,64,42,"Education Sec."],["Andrew Griffith",32,61,60,38,"Energy Sec."],["Alex Burghart",31,60,66,36,"Chief Whip"],["Kemi Badenoch",38,60,42,62,"Foreign Sec."]],
+ lib:[["Ed Davey",44,64,75,58,"Foreign Sec."],["Daisy Cooper",40,66,72,52,"Chancellor"],["Layla Moran",41,62,60,58,"Foreign Sec."],["Munira Wilson",36,63,66,44,"Health Sec."],["Sarah Olney",35,67,68,40,"Chancellor"],["Tim Farron",39,58,60,56,"Education Sec."],["Wendy Chamberlain",34,62,70,40,"Chief Whip"],["Helen Morgan",33,60,66,38,"Defence Sec."],["Christine Jardine",34,59,64,42,"Home Sec."],["Max Wilkinson",31,57,62,40,"Energy Sec."]],
+ ref:[["Nigel Farage",47,58,35,82,"Foreign Sec."],["Richard Tice",36,56,55,50,"Chancellor"],["Zia Yusuf",35,68,52,48,"Chancellor"],["Lee Anderson",33,40,50,58,"Home Sec."],["Sarah Pochin",30,52,58,40,"Education Sec."],["Danny Kruger",34,64,48,46,"Health Sec."],["David Bull",32,50,60,52,"Health Sec."],["James McMurdock",27,45,55,34,"Chief Whip"],["Ann Widdecombe",35,55,62,54,"Home Sec."],["Tim Montgomerie",30,58,50,38,"Energy Sec."]],
+ grn:[["Zack Polanski",38,58,55,66,"Energy Sec."],["Carla Denyer",37,64,68,50,"Energy Sec."],["Adrian Ramsay",34,62,72,38,"Chancellor"],["Siân Berry",36,60,66,46,"Home Sec."],["Ellie Chowns",33,63,68,40,"Foreign Sec."],["Caroline Lucas",46,70,74,58,"Foreign Sec."],["Mothin Ali",30,50,52,48,"Education Sec."],["Larry Sanders",28,48,60,36,"Health Sec."],["Jenny Jones",33,55,66,40,"Home Sec."],["Amelia Womack",30,54,60,44,"Education Sec."]],
+};
+
+/* ---------- TV debate scripts: rival answers by ideological flavour ---------- */
+const DEBATE_LINES={
+ infl:{left:"Cap prices, tax the profiteers, and stop pretending the market will feed anyone.",right:"Sound money, lower taxes, and an end to the borrowing binge that caused this.",centre:"Targeted help now, fiscal discipline after — and honesty that both hurt."},
+ nhs:{left:"Pay the staff, fund the beds, end the privatisation by stealth.",right:"Reform before money: outcomes, not inputs — and use every spare private bed.",centre:"A ten-year workforce plan and an honest conversation about social care."},
+ mig:{left:"Safe routes, faster decisions, and an economy that stops needing scapegoats.",right:"A hard annual cap, offshore processing, and deport-first appeals-later.",centre:"Control and compassion: smash the gangs, clear the backlog, count honestly."},
+ crime:{left:"Youth services, mental health, and policing by consent — prevention beats punishment.",right:"More officers, longer sentences, and stop-and-search without apology.",centre:"Visible neighbourhood policing and courts that actually function."},
+ jobs:{left:"A green industrial strategy and a real living wage — invest, don't liquidate.",right:"Cut the red tape, cut the taxes, and let business breathe again.",centre:"Skills, infrastructure, and planning reform — the boring trinity that works."},
+ sleaze:{left:"Clean the lot out: ban second jobs, end the honours bazaar.",right:"Individual failings, swiftly punished — not an excuse to smear everyone.",centre:"An independent ethics commissioner with teeth, appointed tomorrow."},
+ war:{left:"De-escalate, talk, and never again write blank cheques in other people's blood.",right:"Strength is the only language they understand — rearm and stand firm.",centre:"Hold the line with allies, fund the forces, keep the channel open."},
+};
+
+/* ---------- electoral geography ---------- */
+const ELECT_REGIONS=[["scot","Scotland",57],["north","The North",124],["mid","The Midlands",100],["wales","Wales",32],["lon","London",75],["south","The South",244]];
 
 /* helper used by deck definitions */
 function rndsign(x){return Math.random()<.5?x:-x}
