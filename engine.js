@@ -193,7 +193,10 @@ function applyEffects(S,eff){if(!eff)return;
   if(eff.trustM)S.econ.trust=clamp(S.econ.trust+sh(eff.trustM)*DIFFS[S.meta.difficulty].mkt,0,100);
   if(eff.oppHit)S.pols.oppStr=clamp(S.pols.oppStr+eff.oppHit,25,75);
   if(eff.scot)S.world.scot=clamp(S.world.scot+eff.scot,0,100);
-  if(eff.seats)S.party.seats=clamp(S.party.seats+eff.seats,1,640);
+  if(eff.seats){if(eff.seats<0&&S.house){const r=biggestRival(S);if(r)houseSeatTransfer(S,r.key,S.meta.party,-eff.seats)}
+    else if(eff.seats>0&&S.house){const from=S.meta.phase==="opposition"?(S.opp?S.opp.gov.party:null):(biggestRival(S)||{}).key;
+      if(from)houseSeatTransfer(S,S.meta.party,from,eff.seats)}
+    else S.party.seats=clamp(S.party.seats+eff.seats,1,640);}
   if(eff.chest&&S.opp)S.opp.warchest=clamp(S.opp.warchest+eff.chest,0,30);
   if(eff.gov&&S.opp&&eff.gov.app)S.opp.gov.approval=clamp(S.opp.gov.approval+eff.gov.app,5,80);
   if(eff.rel)for(const[k,v]of Object.entries(eff.rel)){const r=S.world.regions[k];if(r)r.rel=clamp(r.rel+v,-100,100)}
@@ -219,7 +222,9 @@ function applyEffects(S,eff){if(!eff)return;
   if(eff.queue)eff.queue.forEach(q=>S.queue.push({m:S.meta.month+q.m,eff:q.eff,head:q.head}));
   if(eff.scandal)S.score.scandals+=eff.scandal;
   if(eff.crisisWin)S.score.crisesResolved+=eff.crisisWin;
-  if(eff.war)S.world.war=eff.war;
+  if(eff.war){S.world.war=eff.war;
+    S.world.war.ww=S.world.war.ww||(typeof MAJORS!=="undefined"&&MAJORS.includes(S.world.war.theatre));
+    if(S.world.war.ww&&!(S.world.doom>0))S.world.doom=20;}
   if(eff.warEnd)S.world.war=null;
   if(eff.ideo)applyIdeo(S,eff.ideo);
 }
@@ -246,8 +251,9 @@ function tick(S){
   const piStar=2+Math.max(0,defc-3.5)*0.32+E.energy*1.6-(E.rates-3.25)*0.32+(F.minwage-62)*0.02;
   E.infl+=0.1*(piStar-E.infl)+(S.rng()-.5)*0.18*DF.shock;E.infl=clamp(E.infl,-0.5,19);
   if(S.flags.leanedOnBank&&E.infl>3){E.infl+=0.05}
-  if(E.infl>3.4&&S.meta.month%2===0)E.rates=clamp(E.rates+0.25,0.5,8);
-  else if(E.infl<2&&E.g<1.2&&S.meta.month%2===0)E.rates=clamp(E.rates-0.25,0.5,8);
+  const hawk=S.flags.govHawk?0.4:0, dove=S.flags.govDove?0.4:0;
+  if(E.infl>3.4-hawk&&S.meta.month%2===0)E.rates=clamp(E.rates+0.25,0.5,8);
+  else if(E.infl<2+dove&&E.g<1.2+dove&&S.meta.month%2===0)E.rates=clamp(E.rates-0.25,0.5,8);
   E.unemp+=(-0.22*(E.g-1.1))/12+(F.minwage>68?0.02:0)+(S.rng()-.5)*0.05;E.unemp=clamp(E.unemp,2.8,13);
   E.debt+=(defc-E.g*E.debt/100)/12;E.debt=clamp(E.debt,55,180);
   E.trust+=0.12*((60-(E.debt-95)*0.5-Math.max(0,defc-4)*4)-E.trust);E.trust=clamp(E.trust,0,100);
@@ -308,6 +314,7 @@ function tick(S){
   S.party.factions.forEach(f=>f.happy=clamp(f.happy+0.04*(uTgt-f.happy)+(S.rng()-.5)*1.4,0,100));recomputeUnity(S);
   S.media.outlets.forEach(o=>{o.stance+=0.06*((o.lean*(S.meta.phase==="government"?(PARTIES[S.meta.party].ideal.e):(PARTIES[S.meta.party].ideal.e))*8)-o.stance)+(S.rng()-.5)*1.2;o.stance=clamp(o.stance,-50,50)});
   // war attrition
+  if(S.world.war&&S.world.war.ww){S.world.doom=clamp((S.world.doom||0)+2.4+(S.world.war.intensity||1),0,100);}
   if(S.world.war&&S.world.war.phase==="fighting"){const w=S.world.war;
     w.months++;w.cas+=riR(S,15,70)*w.intensity;w.support-=2.6+w.cas/900;w.mood=clamp((w.support-45)/6,-6,4);
     if(w.support<22)w.collapse=true;}
@@ -317,6 +324,9 @@ function tick(S){
   maybeShock(S);
   // history
   S.hist.app.push(S.pols.approval);S.hist.gdp.push(E.gdpIdx);
+  S.hist.infl=S.hist.infl||[];S.hist.rates=S.hist.rates||[];S.hist.unemp=S.hist.unemp||[];S.hist.debt=S.hist.debt||[];S.hist.trust=S.hist.trust||[];
+  S.hist.infl.push(E.infl);S.hist.rates.push(E.rates);S.hist.unemp.push(E.unemp);S.hist.debt.push(E.debt);S.hist.trust.push(E.trust);
+  ["infl","rates","unemp","debt","trust"].forEach(k2=>{if(S.hist[k2].length>180)S.hist[k2].shift()});
   S.hist.pollMe.push(S.pols.pollMe);S.hist.pollGov.push(S.meta.phase==="government"?(100-S.pols.pollMe-28):S.opp.gov.poll);
   if(S.hist.app.length>180){["app","gdp","pollMe","pollGov"].forEach(k=>S.hist[k].shift())}
   return due;
@@ -354,6 +364,44 @@ function genComboCount(){
   return dept+local+pet+intl+storm+celeb+fac+opp;
 }
 
+
+/* leaders rapport store */
+function rapport(S,rid){S.world.leadersR=S.world.leadersR||{};return S.world.leadersR[rid]||0}
+function bumpRapport(S,rid,v){S.world.leadersR=S.world.leadersR||{};S.world.leadersR[rid]=clamp((S.world.leadersR[rid]||0)+v,-30,30)}
+
+/* ---------- great-power escalation ---------- */
+function declareWar(S,rid){
+  if(S.meta.phase!=="government")return{ok:false,msg:"Only the government commands the armed forces."};
+  if(S.world.war)return{ok:false,msg:"One war at a time."};
+  const R=S.world.regions[rid];
+  if(!R)return{ok:false};
+  if(S.pols.capital<20)return{ok:false,msg:"Not enough capital (need 20)."};
+  applyEffects(S,{capital:-20});
+  const justified=R.rel<-50;
+  const ww=MAJORS.includes(rid);
+  applyEffects(S,{standing:justified?-4:-20,trustM:ww?-18:-10,econ:{spendBump:.8}});
+  for(const k of Object.keys(S.world.regions)){if(k!==rid)S.world.regions[k].rel=clamp(S.world.regions[k].rel-(justified?4:12),-100,100)}
+  S.world.regions[rid].rel=-95;
+  applyEffects(S,{war:{name:"War with "+REGIONS[rid].n,theatre:rid,phase:"fighting",support:justified?56:32,cas:0,months:0,intensity:1.3,mood:justified?1:-4,ww}});
+  if(ww)S.world.doom=25;
+  frontPage(S,"BRITAIN DECLARES WAR ON "+REGIONS[rid].n.toUpperCase(),ww?"Against a nuclear power. The Cabinet Secretary asks, formally, whether you have considered what the word 'win' means here.":"The Commons sits in emergency session; the country watches recruiting offices reopen.");
+  log(S,"DECLARED WAR: "+REGIONS[rid].n);
+  return{ok:true};
+}
+function nukeStrike(S,rid){
+  S.flags.nuked=true;
+  const major=MAJORS.includes(rid);
+  if(major&&S.rng()<0.6){S.flags.mad=true;S.meta.over=true;
+    frontPage(S,"—","There is no edition tomorrow.");
+    log(S,"NUCLEAR EXCHANGE");return"mad";}
+  // unanswered first use: you 'win' and lose everything else
+  S.world.war=null;S.score.warsWon++;S.world.doom=0;
+  for(const k of Object.keys(S.world.regions))S.world.regions[k].rel=-90;
+  S.econ.trust=5;S.world.standing=0;
+  applyEffects(S,{app:-25,unity:-20,sleaze:30});
+  frontPage(S,"THE DAY BRITAIN USED IT","The war is over. So is Britain's place among nations. Embassies empty by nightfall; the markets do not reopen so much as flee.");
+  log(S,"FIRST USE — pariah");return"pariah";
+}
 
 /* ---------- shock roll: rare, loud ---------- */
 function maybeShock(S){
@@ -413,6 +461,16 @@ function resolveOption(S,card,idx){
   if(o.special==="hold"){const w=S.world.war;w.support-=1;S.flags["wp"+S.meta.month]=true;
     frontPage(S,"THE LONG WATCH",`Month ${w.months+1} of ${w.name}. Lines hold. Letters arrive. Support ${Math.round(w.support)}%.`);return"held"}
   if(o.special==="negotiate"){S.flags["wp"+S.meta.month]=true;return warNegotiate(S)}
+  if(o.special==="brink_stand"){S.flags["brink"+S.meta.month]=true;
+    const w=S.world.war;S.world.war=null;S.world.doom=0;S.score.crisesResolved++;
+    applyEffects(S,{standing:-8,app:-5,trustM:8});
+    frontPage(S,"THE WORLD EXHALES","You stood the forces down. History will call it weakness or wisdom depending on who writes it — but everyone is alive to argue.");
+    return"stood_down";}
+  if(o.special==="brink_hold"){S.flags["brink"+S.meta.month]=true;
+    S.world.doom=clamp(S.world.doom-12,0,100);applyEffects(S,{standing:3,app:1});
+    frontPage(S,"NERVE, HELD","No first move, no retreat. The launchers stay dispersed; the hotline stays warm; the world ages a year in a week.");
+    return"held_brink";}
+  if(o.special==="brink_nuke"){S.flags["brink"+S.meta.month]=true;return nukeStrike(S,S.world.war.theatre);}
   if(o.special&&o.special.indexOf("occ_")===0){const rid=S.flags._occT,R2=S.world.regions[rid],nm=REGIONS[rid].n;
     if(o.special==="occ_withdraw"){R2.occupied=false;applyEffects(S,{standing:-5,app:-3});
       frontPage(S,"THE LONG RETREAT FROM "+nm.toUpperCase(),"Flags folded, lessons allegedly learned, inquiry pre-ordered.")}
@@ -474,7 +532,7 @@ function runIndyref(S){
 }
 function warOffensive(S){
   const w=S.world.war,dep=S.mil.dep[w.theatre]||{};
-  const p=0.34+(S.mil.cap||0)*0.04+(dep.brig||0)*0.04+(dep.car?0.06:0)+S.world.regions.usa.rel/300+(w.intensity>0.7?0.06:0);
+  const p=0.34+(S.mil.cap||0)*0.04+(dep.brig||0)*0.04+(dep.car?0.06:0)+S.world.regions.usa.rel/300+rapport(S,"usa")/200+(w.intensity>0.7?0.06:0);
   if(S.rng()<p){S.score.warsWon++;S.world.war=null;
     if(w.invasion){const R2=S.world.regions[w.theatre];R2.occupied=true;
       applyEffects(S,{app:w.justified?10:4,standing:w.justified?6:-6,unity:4});
@@ -493,6 +551,24 @@ function warNegotiate(S){const w=S.world.war;S.world.war=null;S.score.crisesReso
   frontPage(S,"THE GUNS GO QUIET",`A ceasefire over ${w.name}. Nobody calls it victory; everyone's children come home. History will argue.`);
   log(S,"Negotiated end: "+w.name);return"peace"}
 
+
+function requestQE(S){
+  if(S.econ.trust>=40)return{ok:false,msg:"The Bank only prints in a crisis (markets under 40)."};
+  if(S.pols.capital<6)return{ok:false,msg:"Not enough capital."};
+  applyEffects(S,{capital:-6,trustM:9});S.econ.infl+=0.5;
+  frontPage(S,"THE PRINTERS HUM","Quantitative easing returns 'temporarily', a word doing heroic work. Markets steady; savers seethe.");
+  return{ok:true};
+}
+function appointGovernor(S,kind){
+  if((S.flags.govAppointedAt||-99)+24>S.meta.month)return{ok:false,msg:"You appointed a Governor recently."};
+  if(S.pols.capital<8)return{ok:false,msg:"Not enough capital."};
+  applyEffects(S,{capital:-8});
+  delete S.flags.govHawk;delete S.flags.govDove;
+  if(kind==="hawk"){S.flags.govHawk=true;applyEffects(S,{trustM:6});frontPage(S,"A HAWK AT THE BANK","The new Governor's first speech contains the word 'discipline' nine times. Mortgage holders flinch; gilt traders purr.")}
+  else{S.flags.govDove=true;applyEffects(S,{trustM:-4});frontPage(S,"A DOVE AT THE BANK","The new Governor 'sees room for patience on rates'. Borrowers cheer; the currency desk mutters.")}
+  S.flags.govAppointedAt=S.meta.month;return{ok:true};
+}
+
 /* ---------- cabinet management ---------- */
 function swapMinister(S,roleIdx,benchIdx){
   if(S.pols.capital<4)return{ok:false,msg:"Not enough capital."};
@@ -506,6 +582,50 @@ function swapMinister(S,roleIdx,benchIdx){
     "A "+c.role+" reshuffled. Allies of the departed brief their hurt by nightfall.");
   log(S,"Reshuffle: "+b.name+" → "+c.role);
   return{ok:true};
+}
+
+
+/* ---------- the lords, the whips, the spooks ---------- */
+function appointPeers(S){
+  if(S.pols.capital<6)return{ok:false,msg:"Not enough capital."};
+  applyEffects(S,{capital:-6,sleaze:2});
+  S.lords=S.lords||{peers:0};S.lords.peers+=riR(S,2,4);
+  frontPage(S,"NEW ERMINE","A batch of working peers takes the oath. The other side calls it packing; you call it 'restoring balance'. Both are right.");
+  return{ok:true,peers:S.lords.peers};
+}
+function whipAction(S,kind,fi){
+  const f=S.party.factions[fi];
+  if(kind==="riot"){if(S.pols.capital<5)return{ok:false,msg:"Not enough capital."};
+    applyEffects(S,{capital:-5});
+    if(S.rng()<0.2){f.happy=clamp(f.happy-4,0,100);recomputeUnity(S);
+      frontPage(S,"THE TELLING-OFF LEAKS","Your riot-act reading to "+f.name+" appears verbatim in a Sunday paper. They are not chastened. They are organising.");return{ok:true,backfired:true}}
+    f.happy=clamp(f.happy+7,0,100);S.party.factions.forEach(o=>{if(o!==f)o.happy=clamp(o.happy-1,0,100)});recomputeUnity(S);
+    log(S,"Whips leaned on "+f.name);return{ok:true}}
+  if(kind==="honours"){if(S.pols.capital<8)return{ok:false,msg:"Not enough capital."};
+    applyEffects(S,{capital:-8,sleaze:3,unity:5});
+    frontPage(S,"GONGS FOR THE LOYAL","An honours list with a suspiciously high correlation to recent division lists. It works. It always works.");
+    return{ok:true}}
+  return{ok:false};
+}
+function intelOp(S,kind){
+  if(kind==="dossier"){if(S.pols.capital<6)return{ok:false,msg:"Not enough capital."};
+    applyEffects(S,{capital:-6});
+    if(S.meta.phase==="government")applyEffects(S,{oppHit:-5});else applyEffects(S,{gov:{app:-1.5}});
+    log(S,"Intel: rival playbook obtained");return{ok:true,msg:"Their grid for next month is on your desk."}}
+  if(kind==="sweep"){if(S.pols.capital<5)return{ok:false,msg:"Not enough capital."};
+    applyEffects(S,{capital:-5,standing:2});
+    if(S.rng()<0.18){applyEffects(S,{sleaze:-5});frontPage(S,"A MOLE, QUIETLY REMOVED","Counter-espionage finds a leak two desks from the centre of government. The story you'll never tell is the best one you have.");return{ok:true,found:true}}
+    return{ok:true,msg:"The sweep comes back clean. Probably."}}
+  if(kind==="kompromat"){if(S.pols.capital<9)return{ok:false,msg:"Not enough capital (need 9)."};
+    applyEffects(S,{capital:-9});
+    const r=S.rng();
+    if(r<0.5){if(S.meta.phase==="government")applyEffects(S,{oppHit:-9});else applyEffects(S,{gov:{app:-3},poll:1});
+      frontPage(S,"A RIVAL'S VERY BAD WEEK","A devastating story about your opponent surfaces with no fingerprints on it. None. Obviously none.");return{ok:true,win:true}}
+    if(r<0.85){return{ok:true,msg:"The file is thinner than promised. Nothing usable."}}
+    applyEffects(S,{sleaze:11,media:-4});
+    frontPage(S,"DIRTY TRICKS EXPOSED","The operation leaks. The story is no longer about them.");
+    return{ok:true,backfired:true}}
+  return{ok:false};
 }
 
 /* ---------- treasury ---------- */
@@ -552,8 +672,8 @@ function computeDivision(S,bill,whipped){
     const n=Math.round(S.party.seats*f.w*rr);
     rebels+=n;if(n>3)rebelNames.push(f.leader+" + "+(n-1)+" of "+f.name);
   });
-  const partner=S.flags.coalitionSeats?S.flags.coalitionSeats:(S.flags.minority?Math.round(8*(S.rng()<0.7?1:0)):0);
-  const ayes=S.party.seats-rebels+partner;
+  const partner=(S.flags.coalitionSeats?S.flags.coalitionSeats:(S.flags.minority?Math.round(8*(S.rng()<0.7?1:0)):0))+Math.min(12,((S.lords&&S.lords.peers)||0))*0;
+  const ayes=S.party.seats-rebels+partner+Math.round(Math.min(12,((S.lords&&S.lords.peers)||0))*0.4);
   const oppFor=bill.ideo.e<-1?0:0;
   const noes=650-S.party.seats-18-(S.flags.minority?partner:0)+rebels*0+oppFor;
   return{ayes,noes:clamp(noes,0,640),rebels,rebelNames,pass:ayes>noes};
@@ -582,7 +702,7 @@ function regionAction(S,rid,act){
   const out={ok:true,msg:""};
   const need=c=>{if(S.pols.capital<c){out.ok=false;out.msg="Not enough capital.";return false}applyEffects(S,{capital:-c});return true};
   switch(act){
-    case"summit":if(!need(5))break;applyEffects(S,{rel:{[rid]:7},standing:2});
+    case"summit":if(!need(5))break;applyEffects(S,{rel:{[rid]:7},standing:2});bumpRapport(S,rid,6);
       frontPage(S,"SUMMIT IN "+meta.cap.toUpperCase(),"Handshakes calibrated to the millimetre. Communiqué adjectives: 'frank', 'productive', 'warm' — pick two.");break;
     case"trade":if(!need(5))break;
       if(R.rel>35&&S.rng()<0.65){applyEffects(S,{rel:{[rid]:5},econ:{g:.15}});S.flags.tradeBoost=true;
@@ -793,7 +913,8 @@ function poachMP(S,k){
   applyEffects(S,{capital:-8});
   const ide=x=>PARTIES[x].ideal.e;
   const p=sig((S.polls[S.meta.party]-S.polls[k])/8+relOf(S,k)/40-Math.abs(ide(S.meta.party)-ide(k))*0.5-0.2);
-  if(S.rng()<p){S.party.seats++;houseByelection(S,true);
+  if(S.rng()<p){
+    if(!houseSeatTransfer(S,S.meta.party,k,1)){applyEffects(S,{capital:4});return{ok:true,win:false}}
     applyEffects(S,{poll:0.4,unity:2});S.polls[k]=clamp(S.polls[k]-0.4,1,55);
     frontPage(S,"DEFECTION","A sitting "+PARTIES[k].name+" MP crosses to you, live on the evening news. "+(REAL_LEADERS[k]||"Their leader")+" calls it 'a betrayal'; you call it 'a homecoming'.");
     log(S,"Poached an MP from "+PARTIES[k].name);return{ok:true,win:true}}
@@ -827,10 +948,8 @@ function proposeMerger(S,k){
   const p=sig(relOf(S,k)/16-1.0);
   if(S.rng()<p){
     const their=S.house?(S.house.rows.find(r=>r.key===k)||{seats:0}).seats:0;
-    const gain=Math.round(their*0.7);
-    S.party.seats+=gain;
-    if(S.house){const yr=S.house.rows.find(r=>r.you),tr=S.house.rows.find(r=>r.key===k);
-      if(yr&&tr){yr.seats+=gain;tr.seats-=gain;}}
+    const gain=Math.max(0,their);
+    houseSeatTransfer(S,S.meta.party,k,gain);
     S.polls[S.meta.party]=clamp(S.polls[S.meta.party]+S.polls[k]*0.65,1,57);
     S.polls[k]=1.2;S.flags["merged_"+k]=true;
     applyEffects(S,{unity:-12,poll:0});
@@ -990,30 +1109,50 @@ function makeInitialHouse(S){
     });}
   setHouse(S,R);
 }
+function houseSeatTransfer(S,toKey,fromKey,n){
+  if(!S.house)return false;n=n||1;
+  const rows=S.house.rows;
+  const to=rows.find(r=>r.key===toKey),from=rows.find(r=>r.key===fromKey);
+  if(!to||!from)return false;
+  let moved=0;
+  const ti=rows.indexOf(to),fi=rows.indexOf(from);
+  for(let i=0;i<n&&from.seats>0;i++){
+    from.seats--;to.seats++;moved++;
+    const rg=(S.house.regions||[]).filter(r=>r.breakdown&&r.breakdown[fi]>0)
+      .sort((a,b)=>b.breakdown[fi]-a.breakdown[fi])[0];
+    if(rg){rg.breakdown[fi]--;rg.breakdown[ti]++;
+      if(to.you)rg.mine++;if(from.you)rg.mine=Math.max(0,rg.mine-1);
+      let wi=0;rg.breakdown.forEach((s2,j)=>{if(s2>rg.breakdown[wi])wi=j});
+      rg.winner=rows[wi].n;rg.col=rows[wi].c;}}
+  const yr=rows.find(r=>r.you);if(yr)S.party.seats=yr.seats;
+  return moved>0;
+}
+function biggestRival(S){
+  return S.house.rows.filter(r=>!r.you&&r.key!=="ni"&&r.seats>0).sort((a,b)=>b.seats-a.seats)[0];
+}
 function houseByelection(S,gain){
   if(!S.house)return;
-  const rows=S.house.rows,you=rows.find(r=>r.you);
-  const others=rows.filter(r=>!r.you&&r.key!=="ni"&&r.seats>0).sort((a,b)=>b.seats-a.seats);
-  if(!you||!others.length)return;
-  if(gain){you.seats++;others[0].seats--;}else{you.seats--;others[0].seats++;}
-  const rg=(S.house.regions||[]).find(r=>r.key==="north")||S.house.regions&&S.house.regions[0];
-  if(rg&&rg.breakdown){const yi=rows.indexOf(you),oi=rows.indexOf(others[0]);
-    if(gain){rg.breakdown[yi]++;rg.breakdown[oi]=Math.max(0,rg.breakdown[oi]-1);rg.mine++}
-    else{rg.breakdown[yi]=Math.max(0,rg.breakdown[yi]-1);rg.breakdown[oi]++;rg.mine=Math.max(0,rg.mine-1)}}
+  const me=S.meta.party;
+  if(gain){const from=S.meta.phase==="opposition"?S.opp.gov.party:(biggestRival(S)||{}).key;
+    if(from)houseSeatTransfer(S,me,from,1);}
+  else{const to=(biggestRival(S)||{}).key;if(to)houseSeatTransfer(S,to,me,1);}
 }
 
 /* ---------- legacy ---------- */
 function legacy(S){
+  if(S.flags.mad)return 0;
   const avgApp=S.hist.app.reduce((a,b)=>a+b,0)/S.hist.app.length;
   const econD=(S.econ.gdpIdx-100)*0.5-Math.max(0,S.econ.infl-3)*1.1-(S.econ.unemp-4.3)*1.4;
   let sc=8+S.meta.govMonths*0.28+S.meta.oppMonths*0.10+S.score.electionsWon*8+(S.meta.becamePM?6:0)
     +(avgApp-42)*0.85+econD+S.score.warsWon*7-S.score.warsLost*11-S.score.scandals*2.2
     +S.score.kept*2-S.score.broken*2.5+(S.world.standing-55)/4+Math.min(S.score.crisesResolved,6)*2.5
-    +Math.min(S.score.billsPassed,8)*1.2+(S.flags.scotGone&&S.meta.party!=="snp"?-16:0)+(S.flags.hague?-40:0);
+    +Math.min(S.score.billsPassed,8)*1.2+(S.flags.scotGone&&S.meta.party!=="snp"?-16:0)+(S.flags.hague?-40:0)+(S.flags.nuked&&!S.flags.mad?-45:0);
   return clamp(Math.round(sc),0,100);
 }
 function verdictText(sc,S){
   if(S.flags.hague)return"You attempted to invade France. France. The Cabinet resigned before the second sentence of your address. Historians have agreed, unusually, to simply not.";
+  if(S.flags.mad)return"Four minutes of leadership, measured properly. The historians, such as remain, do not rank you. The survivors do.";
+  if(S.flags.nuked)return"You used it first. The war ended; so did Britain's word, Britain's seat at every table, and the idea of Britain that made the rest worth having.";
   if(sc>=85)return"They will argue about you for a century and name things after you in the meantime — airports, doctrines, a particularly stubborn breed of negotiating position. You changed the weather.";
   if(sc>=70)return"A genuinely consequential career: the graphs bend where you pushed them. History will be kind, mostly because you survived long enough to draft the first version of it.";
   if(sc>=50)return"A solid innings. Several things demonstrably improved; several others were creatively postponed. Statues: regional. Memoirs: respectable airport placement.";
@@ -1041,7 +1180,7 @@ function nextInteraction(S){
 }
 
 /* ---------- exports ---------- */
-const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,maybeShock,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
+const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,maybeShock,houseSeatTransfer,declareWar,nukeStrike,requestQE,appointGovernor,appointPeers,whipAction,intelOp,rapport,bumpRapport,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
   computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,

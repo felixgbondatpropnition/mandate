@@ -563,7 +563,7 @@ const GOV_DECK=[
 {id:"baltic3",w:0,forced:S=>S.world.war&&S.world.war.name==="Baltic Shield"&&S.world.war.phase==="posture"&&S.meta.month>8&&!S.flags.baltic3done,et:"WAR & PEACE",t:"The line is tested",
  b:()=>"A 'separatist militia' with suspiciously new armour crosses into the border zone your brigade patrols. Shots exchanged; two British wounded. The next 48 hours decide a decade.",
  opts:[
- {l:"Engage and repel",s:"War, contained (you hope)",eff:{flagSet:"baltic3done",app:6,standing:8,rel:{usa:10},war:{name:"Baltic Shield",theatre:"eunorth",phase:"fighting",support:70,cas:12,months:0,intensity:.6,mood:3}},q:"CONTACT"},
+ {l:"Engage and repel",s:"War, contained (you hope)",eff:{flagSet:"baltic3done",app:6,standing:8,rel:{usa:10},war:{name:"Baltic Shield",theatre:"eunorth",phase:"fighting",support:70,cas:12,months:0,intensity:.6,mood:3,ww:true}},q:"CONTACT"},
  {l:"Hold fire, flood the zone with cameras",s:"Make Moscow own it",eff:{flagSet:"baltic3done",standing:5,rel:{russia:-8},warEnd:1,crisisWin:1,queue:[{m:2,eff:{standing:4,app:3},head:"Militia withdraws under the world's gaze."}]},q:"THE WHOLE WORLD IS WATCHING"}]},
 {id:"sandwick1",w:4,once:true,cond:S=>S.meta.month>10,et:"CRISIS",t:"The Sandwick Islands",
  b:()=>"A junta seizes power in San Verde and 'reasserts ancestral claims' over the Sandwick Islands — population 2,900, sheep 480,000, British since 1807. Their fleet sails. Not a drill, not unfamiliar.",
@@ -590,6 +590,12 @@ const GOV_DECK=[
  {l:"Withdraw with ceremony",s:"End it; eat the humiliation",special:"occ_withdraw"},
  {l:"Install a friendly government",s:"Sovereignty, supervised",special:"occ_puppet"},
  {l:"Iron fist",s:"Order now, history later",special:"occ_fist"}]},
+{id:"brink",w:0,forced:S=>S.world.war&&S.world.war.ww&&(S.world.doom||0)>=70&&!S.flags["brink"+S.meta.month],et:"THE BRINK",t:"The world holds its breath",
+ b:S=>`DEFCON climbs. ${LEADER_NAMES[S.world.war.theatre]||"The enemy"} has dispersed mobile launchers; allies are moving families out of capitals. The Chief of the Defence Staff puts a single folder on the table and does not open it.`,
+ opts:[
+ {l:"Stand down — negotiate, live with the cost",s:"Blink, and breathe",special:"brink_stand"},
+ {l:"Hold the line — no first move, no retreat",s:"Ride the razor",special:"brink_hold"},
+ {l:"Open the folder",s:"There is no walking this back",special:"brink_nuke"}]},
 {id:"quiet",w:5,et:"Westminster",t:"A quiet month, allegedly",
  b:()=>"No crisis worthy of the name. A minister opens a bridge. A swan delays a bypass. You sleep almost six hours and wake suspicious.",
  opts:[
@@ -1052,6 +1058,16 @@ const GE_FAMILIES=[
 ];
 
 
+
+/* ---------- world leaders (real, neutral stats) ---------- */
+const LEADER_NAMES={usa:"Donald Trump",canada:"Mark Carney",southam:"Lula da Silva",france:"Emmanuel Macron",
+ germany:"Friedrich Merz",eunorth:"Mette Frederiksen",eusouth:"Giorgia Meloni",ukraine:"Volodymyr Zelensky",
+ russia:"Vladimir Putin",china:"Xi Jinping",india:"Narendra Modi",mideast:"Mohammed bin Salman",
+ gulf:"Mohamed bin Zayed",africaN:"Abdel Fattah el-Sisi",africaS:"William Ruto",eastasia:"Sanae Takaichi",
+ oceania:"Anthony Albanese",southatl:"the Governor"};
+const MAJORS=["russia","china","usa"];
+/* ---------- BRINK card lives in the gov deck via doom ---------- */
+
 /* ---------- SHOCKS: rare, loud, game-bending ---------- */
 const LAB_SUCCESSORS=["Wes Streeting","Angela Rayner","Yvette Cooper","Shabana Mahmood"];
 const SHOCKS=[
@@ -1075,7 +1091,7 @@ const SHOCKS=[
    S.polls[k]=Math.max(2,S.polls[k]-1.6);S.polls[S.meta.party]+=0.5;
    return[PARTIES[k].name.toUpperCase()+" ENGULFED","A donor scandal detonates under "+(REAL_LEADERS[k]||PARTIES[k].name)+". Their week is yours to enjoy — quietly."]}},
  {id:"defectwave",w:1.5,phase:"opposition",cond:S=>S.polls[S.meta.party]>22,
-  fx:S=>{S.party.seats+=2;return["TWO MORE CROSS THE FLOOR","Your poll lead starts pulling MPs across like gravity. Two defections in one afternoon; the whips on both sides cancel dinner."]}},
+  fx:S=>{if(typeof houseSeatTransfer==="function"){const from=S.opp?S.opp.gov.party:"lab";houseSeatTransfer(S,S.meta.party,from,2)}else{S.party.seats+=2}return["TWO MORE CROSS THE FLOOR","Your poll lead starts pulling MPs across like gravity. Two defections in one afternoon; the whips on both sides cancel dinner."]}},
  {id:"strikewave",w:2,fx:S=>{S.econ.g-=0.3;S.svc.nhsWait+=0.3;
    return["A GENERAL STRIKE MOOD","Rail, doctors, teachers and dockers all ballot in the same fortnight. The TUC calls it coincidence, with a smile."]}},
  {id:"cyberhit",w:1.5,fx:S=>{S.svc.nhsWait+=0.4;S.world.standing-=3;

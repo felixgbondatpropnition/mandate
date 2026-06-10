@@ -158,6 +158,32 @@ function click(el, what) {
     assert(/DEALS & DEFECTIONS/i.test($("#tab-cabinet").textContent), "deals panel prominent");
     assert($$("#tab-cabinet [data-xp]").length >= 3, "statecraft buttons");
 
+    // v8: the new wing
+    assert($("#skipn"), "skip-ahead selector in the dock");
+    assert($$("#gametabs button").length === 13, "thirteen rooms on the rail");
+    click($('#gametabs button[data-t="whips"]'), "whips room");
+    assert(/confidence vote/i.test($("#tab-whips").textContent), "whips letters meter");
+    click($('#gametabs button[data-t="intel"]'), "intelligence room");
+    assert(/SPECIAL TASKINGS/i.test($("#tab-intel").textContent), "intel ops");
+    assert(/Donald Trump|Emmanuel Macron/.test($("#tab-intel").textContent), "world leaders listed");
+    click($('#gametabs button[data-t="lords"]'), "lords room");
+    assert(/working peers/i.test($("#tab-lords").textContent), "lords room");
+    click($('#gametabs button[data-t="econlab"]'), "economy lab");
+    assert($$("#tab-econlab .econchart").length >= 3, "economy charts drawn");
+    assert(/TRANSMISSION/i.test($("#tab-econlab").textContent), "transmission panel");
+    click($('#gametabs button[data-t="diary"]'), "diary room");
+    assert($$("#tab-diary [data-ff]").length === 3, "fast-forward buttons");
+    click($$("#tab-diary [data-ff]")[0], "skip 3 months");
+    await sleep(120);
+    assert(/While you were heads-down/i.test($("#modal").textContent), "fast-forward recap");
+    click($("#ffok"), "close recap");
+    for(let g2=0; g2<40 && $("#modal").classList.contains("on"); g2++){
+      const ch=$$("#modal .choice"); if(ch.length){click(ch[0],"ff leftover choice");await sleep(30);continue}
+      const bt2=[...$$("#modal .btn")].find(x=>!x.disabled); if(bt2){click(bt2,"ff leftover btn");await sleep(30);continue}
+      await sleep(30);
+    }
+    assert(!$("#modal").classList.contains("on"), "fast-forward settled");
+
     // play 30 months, resolving every interruption generically
     let months = 0;
     for (let m = 0; m < 30; m++) {

@@ -268,7 +268,7 @@ function enterGame(loaded){
   document.documentElement.style.setProperty("--party-soft",col+"33");
   show("#scr-game");tab="hub";renderAll();save();if(!loaded)openPrimer(false)}
 $$("#gametabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderAll()});
-$("#bt-advance").onclick=()=>{if(!busy)advance()};
+$("#bt-advance").onclick=()=>{if(busy)return;const n=+(($("#skipn")||{}).value||1);if(n>1)fastForward(n);else advance()};
 $("#bt-menu").onclick=openMenu;
 $("#bt-help").onclick=()=>openPrimer(true);
 
@@ -276,7 +276,7 @@ function renderAll(){const vp=$("#viewport");const sy=vp?vp.scrollTop:window.scr
   $$("#gametabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
   $$(".tabpane").forEach(p=>{const on=p.id==="tab-"+tab;p.classList.toggle("on",on);if(!on)p.innerHTML=""});
   if(tab==="office")$("#tab-office").innerHTML='<div id="ov-top"></div><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div>';
-  ({hub:renderHub,office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign})[tab]();
+  ({hub:renderHub,office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign,diary:renderDiary,whips:renderWhips,intel:renderIntel,lords:renderLords,econlab:renderEconLab})[tab]();
   if(vp)vp.scrollTop=sy;else window.scrollTo({top:sy});
 }
 function renderHUD(){
@@ -502,7 +502,9 @@ function renderWorld(){
       <text x="${m.lx||0}" y="${16+(m.ly||0)}" class="rlabel">${m.n.toUpperCase()}</text>
       ${dep&&(dep.brig||dep.car)?`<text y="26" class="rdep">${"▲".repeat(dep.brig||0)}${dep.car?"⚓":""}</text>`:""}
     </g>`}).join("");
-  $("#tab-world").innerHTML=`<div class="duo wide">
+  const warHud=S.world.war?`<div class="warbanner">⚔ ${S.world.war.name} — support ${Math.round(S.world.war.support)}% · casualties ${Math.round(S.world.war.cas)}${S.world.war.ww?` &nbsp;·&nbsp; ☢ DOOMSDAY ${Math.round(S.world.doom||0)}/100`:""}
+   ${S.world.war.ww&&(S.world.doom||0)>50?'<button class="btn red small" id="bt-nuke" style="margin-left:14px">AUTHORISE NUCLEAR STRIKE</button>':""}</div>`:"";
+  $("#tab-world").innerHTML=warHud+`<div class="duo wide">
    <div><div class="seclbl">THE WORLD <span class="dim small">— scroll to zoom · drag to move · click a country</span></div>
     <div id="mapframe">
      <svg id="worldmap" viewBox="${VB.x} ${VB.y} ${VB.w} ${VB.h}" preserveAspectRatio="xMidYMid meet">
@@ -526,6 +528,20 @@ function renderWorld(){
     VB.x=Math.max(0,Math.min(1000-VB.w,dragging.vx-(e.clientX-dragging.x)*sc));
     VB.y=Math.max(0,Math.min(500-VB.h,dragging.vy-(e.clientY-dragging.y)*sc));applyVB()});
   svg.addEventListener("pointerup",()=>dragging=null);
+  const nk=$("#bt-nuke");if(nk)nk.onclick=()=>{
+    modal(`<div class="lbl" style="color:var(--red)">THE FOLDER</div><h3>There is no walking this back.</h3>
+     <div class="body">Type the codeword to authorise first use. The codeword is <b>MIDNIGHT</b>. Or close this and remain a country among countries.</div>
+     <input class="qsearch" id="nukecode" placeholder="codeword">
+     <div class="menu"><button class="btn red" id="nkgo">Authorise</button><button class="btn ghost" id="nkno">Close the folder</button></div>`,true);
+    $("#nkno").onclick=closeModal;
+    $("#nkgo").onclick=()=>{
+      if(($("#nukecode").value||"").trim().toUpperCase()!=="MIDNIGHT"){toast("The folder stays shut.");return}
+      closeModal();
+      const out=E.nukeStrike(S,S.world.war.theatre);
+      if(out==="mad"){endGame("mad");return}
+      ach("pariah","First Use — and the world that followed");
+      renderAll();save()};
+  };
 }
 function svgPoint(svg,e){const r=svg.getBoundingClientRect();
   return{x:VB.x+(e.clientX-r.left)/r.width*VB.w,y:VB.y+(e.clientY-r.top)/r.height*VB.h}}
@@ -545,9 +561,13 @@ function regionPanel(){
     ["recall","Bring a brigade home","—",0],
     ["carrier","Send the carrier","a 40,000-tonne message",0]]
    :[["summit","High-profile visit","look like a leader-in-waiting",5]];
-  if(gov&&!m.home&&!r.occupied&&!S.world.war)acts.push(["invade","INVADE "+m.n.toUpperCase(),r.rel<-40?"they're hostile — a legal case exists":"unprovoked — the whole world will turn",15]);
+  if(gov&&!m.home&&!r.occupied&&!S.world.war){
+    acts.push(["invade","INVADE "+m.n.toUpperCase(),r.rel<-40?"they're hostile — a legal case exists":"unprovoked — the whole world will turn",15]);
+    if(typeof MAJORS!=="undefined"&&MAJORS.includes(k))acts.push(["ultimatum","Issue an ultimatum","draw the line in public · relations −10",4],
+      ["declare","DECLARE WAR on "+m.n.toUpperCase(),"a great-power war · the doomsday clock starts",20]);}
   return`<div class="panelbox"><h4>${m.n} · ${m.cap}</h4>
    <div class="cab">
+    <div class="row2"><span>Leader</span><span><b>${LEADER_NAMES[k]||m.cap}</b> <span class="num ${E.rapport(S,k)>5?"good":E.rapport(S,k)<-5?"bad":"dim"}">rapport ${E.rapport(S,k)>0?"+":""}${E.rapport(S,k)}</span></span></div>
     <div class="row2"><span>Relations with the UK</span><span class="num ${r.rel>20?"good":r.rel<-20?"bad":"warn"}">${Math.round(r.rel)} / 100</span></div>
     <div class="row2"><span>Trade importance</span><span class="num">${r.trade}/10</span></div>
     ${S.mil.dep[k]&&S.mil.dep[k].brig?`<div class="row2"><span>Your forces here</span><span class="num">${S.mil.dep[k].brig} brigade(s)${S.mil.dep[k].car?" + carrier":""}</span></div>`:""}
@@ -559,6 +579,22 @@ function regionPanel(){
 document.addEventListener("click",e=>{
   const b=e.target.closest("#regionpanel .choice");if(!b||b.disabled)return;
   const act=b.dataset.a;
+  if(act==="ultimatum"){const b4=snapStats();
+    E.applyEffects(S,{capital:-4,rel:{[selRegion]:-10},standing:2});
+    E.frontPage(S,"AN ULTIMATUM TO "+REGIONS[selRegion].n.toUpperCase(),"Delivered at the podium, not through channels. The word 'consequences' is used without a smile.");
+    toastDiff(b4);renderAll();save();return;}
+  if(act==="declare"){
+    const m=REGIONS[selRegion];
+    modal(`<div class="lbl" style="color:var(--red)">GREAT-POWER WAR</div><h3>Declare war on ${m.n}?</h3>
+     <div class="body">They have nuclear weapons. The Cabinet Secretary asks, formally, whether you have considered what the word "win" means here. The doomsday meter starts the moment you say yes.</div>
+     <div class="menu"><button class="btn red" id="dwgo">Declare war</button><button class="btn ghost" id="dwno">Step back</button></div>`);
+    $("#dwno").onclick=closeModal;
+    $("#dwgo").onclick=()=>{closeModal();const b4=snapStats();
+      const r2=E.declareWar(S,selRegion);
+      if(!r2.ok){toast(r2.msg||"Cannot.");return}
+      ach("greatpower","Into the Abyss — declared war on a major power");
+      toastDiff(b4);renderAll();save()};
+    return;}
   if(act==="invade"){
     const m=REGIONS[selRegion],r0=S.world.regions[selRegion];
     modal(`<div class="lbl" style="color:var(--red)">Military action</div><h3>Invade ${m.n}?</h3>
@@ -623,10 +659,14 @@ function renderHub(){
    ["world","SITUATION ROOM",466,258,188,96,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
    ["campaign","CAMPAIGN HQ",680,258,188,96,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
   ];
+  const wing=[["diary","DIARY",36,372,150,66,"skip ahead"],["whips","WHIPS",206,372,150,66,"letters "+Math.max(0,Math.round(32-(S.pols.unity-32)))],
+   ["intel","INTELLIGENCE",376,372,150,66,"3 live ops"],["lords","THE LORDS",546,372,150,66,((S.lords&&S.lords.peers)||0)+" peers"],
+   ["econlab","ECONOMY LAB",716,372,150,66,fmt1(S.econ.infl)+"% / "+fmt1(S.econ.rates)+"%"]];
+  wing.forEach(w2=>rooms.push(w2));
   const doors=`<path class="corridor" d="M260,210 H300 M500,110 H540 M500,310 H540 M740,110 H780 M740,310 H780 M400,160 V260 M640,160 V260 M160,150 V120 H300 M160,270 V310 H300"/>`;
   $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">No. 10 — the corridors of power · ${E.dateStr(S)}</div>
-   <svg id="hubmap" viewBox="0 0 960 420">
-    <rect x="20" y="20" width="920" height="380" rx="6" class="hubwall"/>
+   <svg id="hubmap" viewBox="0 0 960 460">
+    <rect x="20" y="20" width="920" height="430" rx="6" class="hubwall"/>
     ${doors}
     ${rooms.map(r=>`<g class="room${r[0]==="world"&&S.world.war?" warroom":""}" data-t="${r[0]}">
       <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="3"/>
@@ -824,6 +864,190 @@ function startInterview(fmtKey){
 }
 function clampPct(x){return Math.max(4,Math.min(96,x))}
 
+
+/* ---------- DIARY: the calendar & the fast-forward ---------- */
+function renderDiary(){
+  const gov=S.meta.phase==="government";
+  const due=gov?Math.max(0,58-(S.meta.month-S.meta.termStart)):Math.max(0,S.opp.electionDue);
+  const nextBudget=gov?((2-S.moy+12)%12||12):null;
+  const conf=( (gov?9:8) - S.moy + 12)%12||12;
+  $("#tab-diary").innerHTML=`<div class="duo">
+   <div><div class="seclbl">THE DIARY — what's coming</div>
+    <div class="panelbox"><div class="cab">
+     <div class="row2"><span>Next general election</span><span class="num warn">within ${due} months</span></div>
+     ${gov?`<div class="row2"><span>Next Budget</span><span class="num">${nextBudget} month${nextBudget>1?"s":""}</span></div>`:""}
+     <div class="row2"><span>Party conference</span><span class="num">${conf} month${conf>1?"s":""}</span></div>
+     ${S.world.war?`<div class="row2"><span class="bad">⚔ War cabinet</span><span class="num bad">every month</span></div>`:""}
+     ${S.world.doom?`<div class="row2"><span class="bad">☢ Doomsday meter</span><span class="num bad">${Math.round(S.world.doom)}/100</span></div>`:""}
+    </div></div>
+    <div class="panelbox"><h4>FAST-FORWARD — let the team run the shop</h4>
+     <p class="body dim small">Your advisers take the routine decisions (you'll get a recap). Anything big — elections, confidence votes, budgets, wars, the brink — stops the clock and waits for you.</p>
+     <div class="menu tight">
+      <button class="btn small" data-ff="3">Skip 3 months</button>
+      <button class="btn small" data-ff="6">Skip 6 months</button>
+      <button class="btn small" data-ff="12">Skip a year</button>
+     </div></div></div>
+   <div><div class="seclbl">RECENT MONTHS</div>
+    <div class="panelbox"><div class="log tall">${S.log.map(l=>`<div><b>${l.m}</b>${l.t}</div>`).join("")}</div></div></div></div>`;
+  $$("#tab-diary [data-ff]").forEach(b=>b.onclick=()=>fastForward(+b.dataset.ff));
+}
+function isForcedCard(card){
+  if(!card||card.gen)return false;
+  const deck=S.meta.phase==="government"?GOV_DECK:OPP_DECK;
+  const d=deck.find(c=>c.id===card.id);
+  return !!(d&&d.forced);
+}
+function fastForward(n){
+  if(busy)return;busy=true;$("#bt-advance").disabled=true;
+  const b4=snapStats();const recap=[];let stopped=null;
+  for(let i=0;i<n;i++){
+    const due=E.tick(S);
+    due.forEach(q=>{
+      if(q.head==="__BYELECTION_NEAR__")E.runByelection(S,true);
+      if(q.head==="__BYELECTION_FAR__")E.runByelection(S,false);
+      if(q.head==="__OBYELECTION_BIG__")E.runOppByelection(S,true);
+      if(q.head==="__OBYELECTION_SMALL__")E.runOppByelection(S,false);
+      if(q.head==="__LOCALS_OWNED__")E.runLocals(S,true);
+      if(q.head==="__LOCALS_LOCAL__")E.runLocals(S,false);
+      if(q.head==="__INDYREF__")E.runIndyref(S);
+    });
+    if(S.flags.mad||S.meta.month>118||S.pols.sleaze>78){stopped="end";break}
+    const it=E.nextInteraction(S);
+    if(it.type==="end"||it.type==="confvote"||it.type==="election"){stopped=it.type;var pend=it;break}
+    if(it.type==="budget"){S.flags["bud"+S.year]=true;recap.push("Budget day: the team rolled last year's settlement over.");continue}
+    if(it.type==="pmqs"){S.flags["pmq"+S.meta.month]=true;
+      const t=E.pmqsTopics(S)[0];
+      E.pmqsResolve(S,t,S.meta.phase==="government"?"own":"forensic");
+      recap.push("PMQs on "+t.label+": handled by the book.");continue}
+    if(it.type==="event"){
+      if(isForcedCard(it.card)){stopped="forced";var pendCard=it.card;break}
+      const adv=E.adviceFor(S,it.card)||{best:0};
+      const pick=Math.min(adv.best,it.card.opts.length-1);
+      E.resolveOption(S,it.card,pick);
+      recap.push(it.card.t+" → "+it.card.opts[pick].l);
+      if(S.flags._resign||S.meta.over){stopped="end";break}
+    }
+  }
+  renderAll();save();
+  const finish=()=>{busy=false;$("#bt-advance").disabled=false;
+    if(stopped==="end"){ if(S.flags.mad){endGame("mad")} else if(S.meta.month>118){endGame("decade")} else if(S.pols.sleaze>78){endGame("sleaze")} else if(S.meta.over){endGame("ousted")} else if(S.flags._resign){endGame("resign")} return;}
+    if(stopped==="election"){openElection(pend);return}
+    if(stopped==="confvote"){const ok=E.runConfVote(S);renderAll();save();if(!ok){endGame("ousted");return}return}
+    if(stopped==="forced"&&pendCard){busy=true;$("#bt-advance").disabled=true;showCard(pendCard);return}
+  };
+  modal(`<div class="lbl gold">While you were heads-down</div>
+   <h3>${recap.length} decision${recap.length===1?"":"s"} taken by the team</h3>
+   <div class="body" style="max-height:300px;overflow-y:auto">${recap.map(r=>"· "+r).join("<br>")||"A quiet stretch. Suspicious."}</div>
+   ${stopped&&stopped!=="end"?'<div class="warbanner">⏸ The clock stopped — something needs the leader.</div>':""}
+   <div class="menu"><button class="btn" id="ffok">Back to the desk</button></div>`,true);
+  $("#ffok").onclick=()=>{closeModal();toastDiff(b4);finish()};
+}
+
+/* ---------- WHIPS ---------- */
+function renderWhips(){
+  const dist=Math.round(S.pols.unity-32);
+  $("#tab-whips").innerHTML=`<div class="duo">
+   <div><div class="seclbl">THE WHIPS' OFFICE — discipline, counted nightly</div>
+    <div class="panelbox"><h4>Distance from a confidence vote</h4>
+     <div class="track big"><div class="fill" style="width:${Math.max(4,Math.min(100,dist*2.2))}%;background:${dist>15?"var(--grn)":dist>6?"var(--gold)":"var(--red)"}"></div></div>
+     <div class="small dim num" style="margin-top:6px">unity ${Math.round(S.pols.unity)} — the letters go in below 32</div></div>
+    ${S.party.factions.map((f,i)=>{const rebels=Math.max(0,Math.round(S.party.seats*f.w*(46-f.happy)/120));
+     return`<div class="panelbox"><h4>${f.name} · ${f.leader}</h4>
+      <div class="cab"><div class="row2"><span>Mood</span><span class="num ${f.happy>55?"good":f.happy>38?"warn":"bad"}">${Math.round(f.happy)}</span></div>
+      <div class="row2"><span>Estimated rebels</span><span class="num ${rebels>8?"bad":"dim"}">${rebels} MPs</span></div></div>
+      <div class="menu tight"><button class="btn ghost small" data-riot="${i}">Read the riot act · 5 cap</button></div></div>`}).join("")}
+   </div>
+   <div><div class="seclbl">TOOLS</div>
+    <div class="panelbox"><h4>Loyalty honours</h4><p class="body dim small">Gongs with a suspiciously high correlation to division lists. Unity +5, a little grubby.</p>
+     <div class="menu tight"><button class="btn ghost small" id="wh-hon">Issue the list · 8 cap</button></div></div></div></div>`;
+  $$("#tab-whips [data-riot]").forEach(b=>b.onclick=()=>{const b4=snapStats();
+    const r=E.whipAction(S,"riot",+b.dataset.riot);if(!r.ok){toast(r.msg||"Cannot.");return}
+    toast(r.backfired?"<b>IT LEAKED</b>":"<b>MESSAGE DELIVERED</b>");toastDiff(b4);renderAll();save()});
+  $("#wh-hon").onclick=()=>{const b4=snapStats();const r=E.whipAction(S,"honours",0);
+    if(!r.ok){toast(r.msg||"Cannot.");return}toastDiff(b4);renderAll();save()};
+}
+
+/* ---------- INTELLIGENCE ---------- */
+function renderIntel(){
+  const worst=Object.entries(S.world.regions).filter(([k])=>k!=="uk").sort((a,b)=>a[1].rel-b[1].rel)[0];
+  $("#tab-intel").innerHTML=`<div class="duo">
+   <div><div class="seclbl">THE INTELLIGENCE PICTURE</div>
+    <div class="panelbox"><h4>This month's assessment</h4>
+     <p class="body">Principal concern: <b>${REGIONS[worst[0]].n}</b> (relations ${Math.round(worst[1].rel)}). ${S.world.war?"Wartime tasking takes priority — agency capacity is stretched.":"Capacity available for special tasking."} ${S.world.doom?`<span class="bad">Strategic warning level: ${Math.round(S.world.doom)}/100.</span>`:""}</p></div>
+    <div class="panelbox"><h4>SPECIAL TASKINGS</h4><div class="opts">
+     <button class="choice" data-op="dossier">Obtain the opposition's playbook<small>Their next month's grid on your desk · 6 capital</small></button>
+     <button class="choice" data-op="sweep">Counter-espionage sweep<small>Standing +2 · small chance of catching a mole · 5 capital</small></button>
+     <button class="choice" data-op="kompromat">Open the kompromat file<small>50% devastating · 35% nothing · 15% it blows up on YOU · 9 capital</small></button>
+    </div></div></div>
+   <div><div class="seclbl">WORLD LEADERS — personal rapport</div>
+    <div class="panelbox"><div class="cab">${Object.keys(REGIONS).filter(k=>k!=="uk"&&k!=="southatl").map(k=>
+     `<div class="row2"><span>${LEADER_NAMES[k]||REGIONS[k].cap} <span class="dim small">· ${REGIONS[k].n}</span></span><span class="num ${E.rapport(S,k)>5?"good":E.rapport(S,k)<-5?"bad":"dim"}">${E.rapport(S,k)>0?"+":""}${E.rapport(S,k)}</span></div>`).join("")}</div>
+    <p class="dim small" style="margin-top:8px">Summits build rapport. Rapport sways trade deals, war support and how fast the phone gets answered.</p></div></div></div>`;
+  $$("#tab-intel [data-op]").forEach(b=>b.onclick=()=>{const b4=snapStats();
+    const r=E.intelOp(S,b.dataset.op);if(!r.ok){toast(r.msg||"Cannot.");return}
+    if(r.msg)toast(r.msg);toastDiff(b4);renderAll();save()});
+}
+
+/* ---------- LORDS ---------- */
+function renderLords(){
+  const peers=(S.lords&&S.lords.peers)||0;
+  $("#tab-lords").innerHTML=`<div class="duo">
+   <div><div class="seclbl">THE HOUSE OF LORDS</div>
+    <div class="panelbox"><h4>Your working peers</h4>
+     <div class="bigscore num" style="font-size:42px">${peers}</div>
+     <p class="body dim small">Each batch of friendly peers smooths your bills through ping-pong — roughly +0.4 votes of effective margin per peer (capped) and fewer ambushes from the red benches.</p>
+     <div class="menu tight"><button class="btn small" id="ld-app">Appoint working peers · 6 cap</button></div></div></div>
+   <div><div class="seclbl">THE MOOD OF THE RED BENCHES</div>
+    <div class="panelbox"><p class="body">${peers>8?"Their lordships grumble that you've packed the place. They are correct.":peers>3?"A respectable presence. Your bills get a fairer wind.":"You are outnumbered among the ermine. Expect ambushes on anything radical."}</p></div></div></div>`;
+  $("#ld-app").onclick=()=>{const b4=snapStats();const r=E.appointPeers(S);
+    if(!r.ok){toast(r.msg||"Cannot.");return}toast("<b>+PEERS</b> · now "+r.peers);toastDiff(b4);renderAll();save()};
+}
+
+/* ---------- ECONOMY LAB ---------- */
+function seriesChart(id,series,ymin,ymax,unit){
+  series=series.map(s2=>{const a=(s2[2]||[]).filter(v=>isFinite(v));
+    return[s2[0],s2[1],a.length>=2?a:[a[0]??0,a[0]??0]]});
+  const N=Math.max(...series.map(s2=>s2[2].length));
+  const x=i=>i/(N-1)*560,y=v=>132-((v-ymin)/(ymax-ymin))*124;
+  let grid="";const step=(ymax-ymin)/4;
+  for(let g=ymin;g<=ymax+0.01;g+=step)grid+=`<line x1="0" y1="${y(g).toFixed(1)}" x2="560" y2="${y(g).toFixed(1)}" class="pgrid"/><text x="3" y="${(y(g)-2).toFixed(1)}" class="pgl">${(Math.round(g*10)/10)}${unit}</text>`;
+  const lines=series.map(s2=>{
+    const arr=s2[2];const p=arr.map((v,i)=>`${i?"L":"M"}${x(i+(N-arr.length)).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    return`<path d="${p}" fill="none" stroke="${s2[1]}" stroke-width="2"/><text x="566" y="${(y(arr[arr.length-1])+3).toFixed(1)}" class="plend" fill="${s2[1]}">${s2[0]}</text>`}).join("");
+  return`<svg viewBox="0 0 660 140" class="econchart" id="${id}">${grid}${lines}</svg>`;
+}
+function renderEconLab(){
+  const H=S.hist;const E2=S.econ;
+  const mk=(t,html)=>`<div class="panelbox"><h4>${t}</h4>${html}</div>`;
+  $("#tab-econlab").innerHTML=`<div class="seclbl">THE ECONOMY LAB — every dial, every linkage</div><div class="duo">
+   <div>
+    ${mk("INFLATION vs BANK RATE — the duel",seriesChart("c1",[["CPI","#e2543f",H.infl||[E2.infl]],["Rate","#7fa3c0",H.rates||[E2.rates]]],0,Math.max(8,Math.ceil(Math.max(...(H.infl||[5])))),"%"))}
+    ${mk("GROWTH (annualised)",seriesChart("c2",[["GDP","#5fc88f",(H.gdp||[]).map((v,i,a)=>i?((v/a[i-1]-1)*1200):1.4)]],-4,5,"%"))}
+    ${mk("UNEMPLOYMENT",seriesChart("c3",[["Jobless","#c9a86a",H.unemp||[E2.unemp]]],2,9,"%"))}
+    ${mk("DEBT & MARKET CONFIDENCE",seriesChart("c4",[["Debt %GDP","#e2543f",H.debt||[E2.debt]],["Markets","#5fc88f",H.trust||[E2.trust]]],0,140,""))}
+   </div>
+   <div>
+    <div class="panelbox"><h4>THE TRANSMISSION — how it all connects, live</h4><div class="cab">
+     <div class="row2"><span>Bank rate ${fmt1(E2.rates)}% → growth drag</span><span class="num ${E2.rates>4?"bad":"dim"}">−${fmt1(Math.max(0,0.45*(E2.rates-3.25)))}pp</span></div>
+     <div class="row2"><span>Deficit ${fmt1(S.fiscalDeficit)}% → inflation push</span><span class="num ${S.fiscalDeficit>4?"bad":"dim"}">+${fmt1(Math.max(0,(S.fiscalDeficit-3.5)*0.32))}pp</span></div>
+     <div class="row2"><span>Inflation ${fmt1(E2.infl)}% → approval drag</span><span class="num ${E2.infl>3?"bad":"dim"}">−${fmt1(Math.max(0,E2.infl-2)*1.8)}pts</span></div>
+     <div class="row2"><span>Growth ${fmt1(E2.g)}% → approval lift</span><span class="num ${E2.g>1?"good":"dim"}">${E2.g>0?"+":""}${fmt1(E2.g*2.1)}pts</span></div>
+     <div class="row2"><span>Approval → your poll share</span><span class="num dim">${S.meta.phase==="government"?"24 + 0.42×approval":"anchored to the gov's failure"}</span></div>
+     <div class="row2"><span>Markets ${Math.round(E2.trust)}/100 → gilt premium</span><span class="num ${E2.trust<40?"bad":"dim"}">+${fmt1((60-Math.min(60,E2.trust))/25)}%</span></div>
+    </div><p class="dim small" style="margin-top:8px">Every arrow is computed from the live engine, not decoration. Drop markets under 25 and the gilt strike forces an emergency budget.</p></div>
+    <div class="panelbox"><h4>MONETARY LEVERS</h4><div class="opts">
+     <button class="choice" id="el-lean">Lean on the Governor<small>Rates −0.5 now · markets −8 · inflation risk · 8 capital</small></button>
+     <button class="choice" id="el-qe">Request QE<small>Only in a crisis (markets &lt;40) · markets +9, inflation +0.5 · 6 capital</small></button>
+     <button class="choice" id="el-hawk">Appoint a HAWK Governor<small>Bank fights inflation harder · markets +6 · 8 capital</small></button>
+     <button class="choice" id="el-dove">Appoint a DOVE Governor<small>Bank protects growth · markets −4 · 8 capital</small></button>
+    </div>${S.flags.govHawk?'<p class="small warn">Current Governor: HAWK</p>':S.flags.govDove?'<p class="small warn">Current Governor: DOVE</p>':""}</div>
+   </div></div>`;
+  $("#el-lean").onclick=()=>{const b4=snapStats();const r=E.leanOnBank(S);if(!r.ok){toast("Not enough capital.");return}toastDiff(b4);renderAll();save()};
+  $("#el-qe").onclick=()=>{const b4=snapStats();const r=E.requestQE(S);if(!r.ok){toast(r.msg);return}toastDiff(b4);renderAll();save()};
+  $("#el-hawk").onclick=()=>{const r=E.appointGovernor(S,"hawk");if(!r.ok){toast(r.msg);return}renderAll();save()};
+  $("#el-dove").onclick=()=>{const r=E.appointGovernor(S,"dove");if(!r.ok){toast(r.msg);return}renderAll();save()};
+}
+
 /* ---------- core flow ---------- */
 function advance(){
   busy=true;$("#bt-advance").disabled=true;
@@ -866,6 +1090,7 @@ function showCard(card){
   $$("#modal .choice").forEach(b=>b.onclick=()=>{
     const b4=snapStats();
     E.resolveOption(S,card,+b.dataset.i);closeModal();
+    if(S.flags.mad){endGame("mad");return}
     if(S.flags._resign){endGame("resign");return}
     if(S.meta.over){endGame("ousted");return}
     toastDiff(b4);renderAll();save();done();
@@ -1019,8 +1244,10 @@ function endGame(kind){
    ousted:["DEFENESTRATED","The party turned. They always turn. You just hoped for later."],
    sleaze:["BURIED BY SCANDAL","Not one story but the weight of all of them."],
    deposed:["THE PARTY MOVES ON","Defeat without progress is a verdict."],
-   hague:["THE HAGUE ENDING","You tried to invade France."]};
+   hague:["THE HAGUE ENDING","You tried to invade France."],
+   mad:["MUTUAL ANNIHILATION","The folder was opened. The reply took eleven minutes."]};
   const t=titles[kind]||titles.resign;
+  if(kind==="mad")ach("midnight","Midnight — there was no morning");
   if(S.score.months<2)ach("lettuce","The Lettuce — outlasted by salad");
   if(S.meta.month>118)ach("decade","The Full Decade");
   if(S.score.warsWon>0)ach("warwinner","Commander — won a war");

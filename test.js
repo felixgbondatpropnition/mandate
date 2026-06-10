@@ -47,6 +47,31 @@ for(let i=0;i<30;i++){
  if(E.pmqPoolCount()<100)throw new Error("PMQ pool under 100");
  const labels=new Set();for(let i=0;i<10;i++){E.tick(SR);E.pmqsTopics(SR).forEach(x=>labels.add(x.label))}
  if(labels.size<12)throw new Error("PMQ topics not rotating: "+labels.size);}
+// great-power war path: declare -> doom climbs -> BRINK forces -> stand down
+{const W=E.newGame({party:'lab',bg:'soldier',scenario:'coldwind',difficulty:'standard',seed:'ww-path',name:'PM'});
+ const dw=E.declareWar(W,'russia');if(!dw.ok)throw new Error("declareWar refused: "+dw.msg);
+ if(!W.world.war||!W.world.war.ww)throw new Error("ww flag missing");
+ let brink=null;
+ for(let i=0;i<40&&!brink;i++){E.tick(W);W.pols.capital=80;
+   if(!W.world.war){E.declareWar(W,'russia');}
+   if(W.world.war)W.world.war.support=60;
+   W.pols.unity=70;W.flags["pmq"+W.meta.month]=true;W.flags["bud"+W.year]=true;W.flags["wp"+W.meta.month]=true;
+   const it=E.nextInteraction(W);
+   if(it.type==="event"&&it.card){
+     if(it.card.id==="brink")brink=it.card;
+     else E.resolveOption(W,it.card,0);}
+   else if(it.type==="confvote")W.pols.unity=70;}
+ if(!brink)throw new Error("brink never forced (doom="+Math.round(W.world.doom||0)+")");
+ E.resolveOption(W,brink,0);
+ if(W.world.war)throw new Error("stand-down did not end the war");
+ if((W.world.doom||0)!==0)throw new Error("doom not reset");
+ const N=E.newGame({party:'lab',bg:'soldier',scenario:'coldwind',difficulty:'standard',seed:'mad-path',name:'PM'});
+ E.declareWar(N,'russia');let out=null;
+ for(let s2=0;s2<30&&out!=="mad";s2++){const N2=E.newGame({party:'lab',bg:'soldier',scenario:'coldwind',difficulty:'standard',seed:'mad-'+s2,name:'PM'});
+   E.declareWar(N2,'russia');out=E.nukeStrike(N2,'russia');
+   if(out==="mad"&&!(N2.flags.mad&&N2.meta.over))throw new Error("mad ending state wrong");}
+ if(out!=="mad")throw new Error("MAD never triggered in 30 strikes (p=0.6 each)");
+ console.log("war path: declare->brink->stand-down OK · MAD ending OK");}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);
@@ -100,6 +125,10 @@ for(const cfg of MATRIX){
         else E.proposeMerger(S,k);
         counts.statecraft=(counts.statecraft||0)+1}
       if(R()<0.05){const ks=Object.keys(D.ISSUES||{});if(ks.length)E.setStance(S,ks[Math.floor(R()*ks.length)],Math.round((R()*4-2)*2)/2)}
+      if(S.house){const hsum=S.house.rows.reduce((a,r)=>a+r.seats,0);
+        if(hsum!==650)throw new Error("HOUSE INVARIANT BROKEN: "+hsum+" seats");
+        for(const rg of S.house.regions||[]){const rs=rg.breakdown.reduce((a,b)=>a+b,0);
+          if(rs!==rg.seats)throw new Error("REGION LEDGER BROKEN: "+rg.key+" "+rs+"/"+rg.seats)}}
       if(S.meta.phase==="government"&&R()<0.07&&S.pols.capital>10){
         const f=Object.assign({},S.fiscal);f.basic=Math.round(D.FISCAL_META.basic.min+R()*(D.FISCAL_META.basic.max-D.FISCAL_META.basic.min));
         f.nhs=+(D.FISCAL_META.nhs.min+R()*(D.FISCAL_META.nhs.max-D.FISCAL_META.nhs.min)).toFixed(1);
