@@ -22,9 +22,7 @@ const fmt1=x=>(Math.round(x*10)/10).toFixed(1);
 function flash(el){el.classList.remove("bump");void el.offsetWidth;el.classList.add("bump")}
 
 /* ---------- title & setup wizard ---------- */
-function dailySeed(){const d=new Date();return"daily-"+d.getUTCFullYear()+"-"+(d.getUTCMonth()+1)+"-"+d.getUTCDate()}
-$("#bt-new").onclick=()=>{cfg.seed=null;show("#scr-setup");openWizard()};
-$("#bt-daily").onclick=()=>{cfg.seed=dailySeed();show("#scr-setup");openWizard();toast("<b>DAILY CRISIS</b> · seed "+cfg.seed+" — identical timeline for everyone today")};
+$("#bt-new").onclick=()=>startWizard();
 $("#bt-continue").onclick=()=>{try{const raw=localStorage.getItem(LSK);if(!raw)return;S=E.rehydrate(JSON.parse(raw));enterGame();}catch(e){toast("Save unreadable.")}};
 $("#bt-method").onclick=()=>{modal(`<div class="lbl gold">The maths</div><h3>What's under the bonnet</h3>
  <div class="body"><p>A monthly macro model: growth mean-reverts to potential set by investment, tax drag, energy shocks, Bank rate and migration-driven labour supply; inflation anchors at 2% but is pushed by deficits, energy and minimum-wage settings; the Bank reacts mechanically (unless you lean on it, which the gilt market notices); debt compounds at deficit − g·debt. Market trust below 25 staples you to an emergency budget.</p>
@@ -33,47 +31,85 @@ $("#bt-method").onclick=()=>{modal(`<div class="lbl gold">The maths</div><h3>Wha
  <div class="menu"><button class="btn ghost" onclick="document.getElementById('modal').classList.remove('on');document.getElementById('shade').classList.remove('on')">Close</button></div>`)};
 try{if(localStorage.getItem(LSK))$("#bt-continue").disabled=false}catch(e){}
 
-function openWizard(){
-  // scenarios
-  const sc=$("#pickscenario");sc.innerHTML="";
-  for(const[k,s]of Object.entries(SCENARIOS)){
-    const d=document.createElement("div");d.className="opt"+(cfg.scenario===k?" sel":"");
-    d.innerHTML=`<h4>${s.name}</h4><p>${s.desc}</p><div class="stats">${s.phase==="government"?"START: IN POWER":"START: OPPOSITION"}</div>`;
-    d.onclick=()=>{cfg.scenario=k;openWizard()};sc.appendChild(d);
+/* ---------- onboarding wizard: one decision per step ---------- */
+let wizStep=0;
+const WIZ=[["The scenario","Where does your story begin?"],
+           ["The difficulty","How cruel is Britain feeling?"],
+           ["Your party","Whose rosette do you wear?"],
+           ["Your past life","What were you before all this?"],
+           ["Sign here","Name yourself, check the ballot paper, take the stage."]];
+function startWizard(){cfg={scenario:null,difficulty:null,party:null,bg:null,seed:null};wizStep=0;show("#scr-setup");renderWiz()}
+function partyStatLine(sc,p){
+  const mj=p.govSeats*2-650;
+  switch(sc){
+    case"fresh":return"IN POWER · majority "+mj+" · unity "+p.unity;
+    case"landslide":return"IN POWER · landslide majority 180 · expectations: brutal";
+    case"sterling":return"IN POWER · majority "+mj+" · inflation 9.8% · markets at 28/100";
+    case"coldwind":return"IN POWER · majority "+mj+" · Moscow probing · defence gutted";
+    case"minority":return"IN POWER · NO MAJORITY — 316 seats · confidence & supply";
+    case"knife":return"OPPOSITION · "+p.oppSeats+" seats · polls level · election due within 18 months";
+    default:return"OPPOSITION · "+p.oppSeats+" seats · "+(326-p.oppSeats)+" more needed for a majority";
   }
-  const df=$("#pickdiff");df.innerHTML="";
-  for(const[k,x]of Object.entries(DIFFS)){
-    const d=document.createElement("div");d.className="opt"+(cfg.difficulty===k?" sel":"");
-    d.innerHTML=`<h4>${x.name}</h4><p>${x.desc}</p>`;
-    d.onclick=()=>{cfg.difficulty=k;openWizard()};df.appendChild(d);
-  }
-  const pp=$("#pickparty");pp.innerHTML="";
-  for(const[k,p]of Object.entries(PARTIES)){
-    if(p.aiOnly)continue;
-    const isOpp=SCENARIOS[cfg.scenario].phase==="opposition";
-    const d=document.createElement("div");d.className="opt"+(cfg.party===k?" sel":"");
-    d.innerHTML=`<h4><span class="sw" style="background:${p.col}"></span>${p.name}</h4><p>${isOpp?(p.oppBlurb||p.blurb):(p.blurb||p.oppBlurb)}</p>
-      <div class="stats">${isOpp?"seats "+p.oppSeats+" · the mountain: "+(326-p.oppSeats)+" more":"seats "+p.govSeats+" · majority "+(p.govSeats*2-650)} · unity ${p.unity}</div>`;
-    d.onclick=()=>{cfg.party=k;openWizard()};pp.appendChild(d);
-  }
-  const pb=$("#pickbg");pb.innerHTML="";
-  for(const[k,b]of Object.entries(BGS)){
-    const d=document.createElement("div");d.className="opt"+(cfg.bg===k?" sel":"");
-    d.innerHTML=`<h4>${b.name}</h4><p>${b.blurb}</p><div class="stats">${b.stats}</div>`;
-    d.onclick=()=>{cfg.bg=k;openWizard()};pb.appendChild(d);
-  }
-  $("#bt-begin").disabled=!(cfg.party&&cfg.bg);
-  $("#seedline2").textContent=cfg.seed?("seed: "+cfg.seed):"random seed";
 }
-$("#bt-back").onclick=()=>show("#scr-title");
-$("#bt-begin").onclick=()=>{
-  cfg.name=($("#pmname").value||"").trim()||"The Leader";
-  S=E.newGame(cfg);
-  if(S.meta.phase==="government")E.frontPage(S,"KEYS TO NUMBER TEN",`${S.meta.pm} of the ${PARTIES[S.meta.party].name} kisses hands. Majority of ${S.majority}. The removal van idles, out of respect, around the corner.`);
-  else E.frontPage(S,"A NEW LEADER OF THE OPPOSITION",`${S.meta.pm} takes the worst job in politics: ${PARTIES[S.meta.party].name}, ${S.party.seats} seats, a government to hunt and ${S.opp.electionDue} months till the country chooses.`);
-  E.log(S,S.meta.phase==="government"?"Entered No. 10.":"Elected Leader of the Opposition.");
-  enterGame();
-};
+function renderWiz(){
+  $("#wizcrumb").textContent="New career · step "+(wizStep+1)+" of "+WIZ.length;
+  $("#wiztitle").textContent=WIZ[wizStep][0];
+  $("#wizsub").textContent=WIZ[wizStep][1];
+  $("#wizdots").innerHTML=WIZ.map((_,i)=>`<span class="wd ${i<wizStep?"done":i===wizStep?"now":""}"></span>`).join("");
+  const B=$("#wizbody");
+  const pickAndGo=set=>e=>{set();e.currentTarget.classList.add("sel");setTimeout(()=>{wizStep++;renderWiz()},170)};
+  if(wizStep===0){
+    B.innerHTML=`<div class="pick" id="pickscenario"></div>`;const sc=$("#pickscenario");
+    for(const[k,s]of Object.entries(SCENARIOS)){
+      const d=document.createElement("div");d.className="opt"+(cfg.scenario===k?" sel":"");
+      d.innerHTML=`<h4>${s.name}</h4><p>${s.desc}</p><div class="stats">${s.phase==="government"?"START: IN POWER":"START: OPPOSITION"}</div>`;
+      d.onclick=pickAndGo(()=>{if(cfg.scenario!==k)cfg.party=null;cfg.scenario=k});sc.appendChild(d);}
+  }else if(wizStep===1){
+    B.innerHTML=`<div class="pick" id="pickdiff"></div>`;const df=$("#pickdiff");
+    for(const[k,x]of Object.entries(DIFFS)){
+      const d=document.createElement("div");d.className="opt"+(cfg.difficulty===k?" sel":"");
+      d.innerHTML=`<h4>${x.name}</h4><p>${x.desc}</p>`;
+      d.onclick=pickAndGo(()=>cfg.difficulty=k);df.appendChild(d);}
+  }else if(wizStep===2){
+    B.innerHTML=`<div class="pick" id="pickparty"></div>`;const pp=$("#pickparty");
+    const isOpp=SCENARIOS[cfg.scenario].phase==="opposition";
+    for(const[k,p]of Object.entries(PARTIES)){
+      if(p.aiOnly)continue;
+      const d=document.createElement("div");d.className="opt"+(cfg.party===k?" sel":"");
+      d.innerHTML=`<h4><span class="sw" style="background:${p.col}"></span>${p.name}</h4>
+        <p>${isOpp?(p.oppBlurb||p.blurb):(p.blurb||p.oppBlurb)}</p>
+        <div class="stats">${partyStatLine(cfg.scenario,p)}</div>`;
+      d.onclick=pickAndGo(()=>cfg.party=k);pp.appendChild(d);}
+  }else if(wizStep===3){
+    B.innerHTML=`<div class="pick" id="pickbg"></div>`;const pb=$("#pickbg");
+    for(const[k,b]of Object.entries(BGS)){
+      const d=document.createElement("div");d.className="opt"+(cfg.bg===k?" sel":"");
+      d.innerHTML=`<h4>${b.name}</h4><p>${b.blurb}</p><div class="stats">${b.stats}</div>`;
+      d.onclick=pickAndGo(()=>cfg.bg=k);pb.appendChild(d);}
+  }else{
+    const s=SCENARIOS[cfg.scenario],p=PARTIES[cfg.party],b=BGS[cfg.bg];
+    B.innerHTML=`<div class="field"><div class="lbl" style="margin-bottom:8px">Your name</div>
+      <input type="text" id="pmname" maxlength="28" placeholder="e.g. Alex Sterling"></div>
+      <div class="panelbox" style="max-width:580px"><h4>The ballot paper</h4><div class="cab">
+       <div class="row2"><span>Scenario</span><span><b>${s.name}</b> <a class="wizchg" data-s="0">change</a></span></div>
+       <div class="row2"><span>Difficulty</span><span><b>${DIFFS[cfg.difficulty].name}</b> <a class="wizchg" data-s="1">change</a></span></div>
+       <div class="row2"><span>Party</span><span><b>${p.name}</b> <a class="wizchg" data-s="2">change</a></span></div>
+       <div class="row2"><span>Past life</span><span><b>${b.name}</b> <a class="wizchg" data-s="3">change</a></span></div>
+       <div class="row2"><span>Opening position</span><span class="dim small">${partyStatLine(cfg.scenario,p)}</span></div>
+      </div></div>
+      <div class="menu"><button class="btn" id="bt-begin">Take the stage</button></div>`;
+    $$(".wizchg").forEach(a=>a.onclick=()=>{wizStep=+a.dataset.s;renderWiz()});
+    $("#bt-begin").onclick=()=>{
+      cfg.name=($("#pmname").value||"").trim()||"The Leader";
+      S=E.newGame(cfg);
+      if(S.meta.phase==="government")E.frontPage(S,"KEYS TO NUMBER TEN",`${S.meta.pm} of the ${PARTIES[S.meta.party].name} kisses hands. ${S.flags.minority?"No majority — every vote a cliffhanger.":"Majority of "+S.majority+"."} The removal van idles, out of respect, around the corner.`);
+      else E.frontPage(S,"A NEW LEADER OF THE OPPOSITION",`${S.meta.pm} takes the worst job in politics: ${PARTIES[S.meta.party].name}, ${S.party.seats} seats, a government to hunt and ${S.opp.electionDue} months till the country chooses.`);
+      E.log(S,S.meta.phase==="government"?"Entered No. 10.":"Elected Leader of the Opposition.");
+      enterGame();
+    };
+  }
+}
+$("#bt-wizback").onclick=()=>{if(wizStep===0)show("#scr-title");else{wizStep--;renderWiz()}};
 
 /* ---------- game shell ---------- */
 let tab="hub",prev={};

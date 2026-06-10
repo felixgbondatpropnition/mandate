@@ -27,4 +27,3 @@ Play: https://felixgbondatpropnition.github.io/mandate/
 - `index.html` + `style.css` + `data.js` + `engine.js` + `ui.js` — no build, no deps
 - `test.js` — headless fleet: 140 full careers across the whole matrix (`node test.js`)
 
-Daily Crisis mode seeds the date — identical timeline for everyone, compare legacies.

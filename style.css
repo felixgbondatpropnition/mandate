@@ -267,3 +267,13 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
 .campchart{width:100%;height:60px;margin:10px 0 2px;background:var(--well);border:1px solid var(--hair)}
 
 @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+/* ---- onboarding ---- */
+.wizdots{display:flex;gap:7px;margin:0 0 20px}
+.wd{width:26px;height:3px;background:rgba(233,236,242,.12)}
+.wd.done{background:var(--party)}
+.wd.now{background:var(--ink);box-shadow:0 0 10px var(--party-soft)}
+.wizchg{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--party);cursor:pointer;margin-left:8px;border-bottom:1px dotted var(--party)}
+.wizchg:hover{color:var(--ink)}
+#wizbody .pick{margin-top:0}

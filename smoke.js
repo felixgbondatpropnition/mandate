@@ -31,24 +31,42 @@ function click(el, what) {
     click($("#bt-new"), "new career");
     assert($("#scr-setup").classList.contains("on"), "setup visible");
 
-    // roster & content checks
+    // step flow: one decision per screen
+    assert($("#pickscenario"), "step 1 shows scenarios only");
+    assert(!$("#pickparty"), "parties NOT shown on step 1");
+    assert(!$("#bt-daily"), "daily crisis removed");
     const scTxt = $("#pickscenario").textContent;
     assert(!/Long Road/i.test(scTxt), "Long Road must be gone");
+
+    // coherence: Coalition of Chaos must show NO MAJORITY on party cards
+    click([...$$("#pickscenario .opt")].find(o => /Coalition of Chaos/i.test(o.textContent)), "minority scenario");
+    await sleep(260);
+    assert($("#pickdiff"), "step 2 difficulty");
+    click($$("#pickdiff .opt")[0], "difficulty");
+    await sleep(260);
+    assert($("#pickparty"), "step 3 parties");
+    assert(/NO MAJORITY — 316/.test($("#pickparty").textContent), "minority scenario reflected on party cards");
+
+    // back to scenario, choose fresh majority instead
+    click($("#bt-wizback"), "back to diff"); click($("#bt-wizback"), "back to scenario");
+    assert($("#pickscenario"), "back at step 1");
+    click($$("#pickscenario .opt")[0], "fresh scenario");
+    await sleep(260);
+    click($$("#pickdiff .opt")[1], "standard difficulty");
+    await sleep(260);
     const pTxt = $("#pickparty").textContent;
     assert(!/Green/.test(pTxt), "Green must not be pickable");
     assert(!/SNP/.test(pTxt), "SNP must not be pickable");
-    assert(/Labour/.test(pTxt) && /Reform UK/.test(pTxt), "core parties present");
+    assert(/majority 72/.test(pTxt), "fresh scenario shows real majority");
+    click($$("#pickparty .opt")[0], "party (Labour)");
+    await sleep(260);
     const bTxt = $("#pickbg").textContent;
     assert(/Successful entrepreneur/.test(bTxt), "entrepreneur background present");
     assert(/Career politician/.test(bTxt), "career politician background present");
-
-    // wizard picks (re-query after each re-render)
-    click($$("#pickscenario .opt")[0], "scenario");
-    click($$("#pickdiff .opt")[1], "difficulty");
-    click($$("#pickparty .opt")[0], "party (Labour)");
     click([...$$("#pickbg .opt")].find(o => /entrepreneur/i.test(o.textContent)), "background");
+    await sleep(260);
+    assert(/ballot paper/i.test($("#wizbody").textContent), "summary step");
     $("#pmname").value = "Smoke Test";
-    assert(!$("#bt-begin").disabled, "begin enabled");
     click($("#bt-begin"), "begin");
     assert($("#scr-game").classList.contains("on"), "game screen on");
     assert($$("#hubmap .room").length >= 7, "hub rooms drawn");
@@ -136,9 +154,15 @@ function click(el, what) {
     const click2 = (el, what) => { if (!el) throw new Error("opp missing: " + what); el.dispatchEvent(new w2.MouseEvent("click", { bubbles: true })); };
     click2(q("#bt-new"), "new");
     click2([...qq("#pickscenario .opt")].find(o => /Wilderness/i.test(o.textContent)), "wilderness");
+    await sleep(260);
     click2(qq("#pickdiff .opt")[0], "gentle");
+    await sleep(260);
+    assert(/OPPOSITION ·/.test(q("#pickparty").textContent), "opposition stat lines");
+    assert(/more needed for a majority/.test(q("#pickparty").textContent), "the mountain shown");
     click2([...qq("#pickparty .opt")].find(o => /Reform/i.test(o.textContent)), "reform");
+    await sleep(260);
     click2([...qq("#pickbg .opt")].find(o => /Career politician/i.test(o.textContent)), "lifer");
+    await sleep(260);
     q("#pmname").value = "Opp Smoke";
     click2(q("#bt-begin"), "begin opp");
     assert(q("#scr-game").classList.contains("on"), "opp game on");
