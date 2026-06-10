@@ -582,7 +582,7 @@ function settleElectionLoss(S){
   if(S.meta.phase==="government"){
     // fall to opposition — career continues
     const newGov=PARTIES[S.meta.party].rival;
-    S.meta.phase="opposition";S.party.seats=Math.max(150,Math.round(S.party.seats*0.62));
+    S.meta.phase="opposition";S.party.seats=Math.max(150,Math.round(S.party.seats*0.62));delete S.flags.minority;
     S.opp={gov:{party:newGov,pm:S.pols.oppName,approval:50,poll:36,fatigue:0,lastBlunder:null,monthsIn:0},
       electionDue:58,warchest:3};
     S.pols.pollMe=basePoll(S)-4;applyEffects(S,{unity:-10,capital:-10});

@@ -35,7 +35,7 @@ const PARTIES={
    region:{north:1.2,mid:1.15,lon:.7,south:1.0,scot:.5,wales:1.0},
    rival:"lab",blurb:"The insurgency won. Half your MPs have never read standing orders; the other half wrote new ones in crayon.",
    oppBlurb:"The wave that hasn't crested. Every government failure is your recruiting sergeant."},
- grn:{name:"Green",col:"#3a9c4f",ideal:{e:-1.5,s:-1.2},
+ grn:{name:"Green",col:"#3a9c4f",aiOnly:true,ideal:{e:-1.5,s:-1.2},
    govSeats:329,oppSeats:32,unity:66,trust:44,app:47,
    factions:[["Eco-Socialists",.40,{e:-2,s:-1.2},"Rosa Vane"],["Pragmatists",.35,{e:-.9,s:-.9},"Tom Ellery"],["Deep Greens",.25,{e:-1.6,s:-1.8},"Skye Aldous"]],
    region:{north:.9,mid:.85,lon:1.3,south:1.1,scot:.9,wales:1.0},

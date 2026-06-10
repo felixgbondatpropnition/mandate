@@ -6,13 +6,15 @@ if(typeof document!=="undefined"){(function(){
 const E=__MANDATE__;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 let S=null,cfg={scenario:"fresh",difficulty:"standard",party:null,bg:null},busy=false;
-const LSK="mandate_save_v2",LSA="mandate_ach_v2";
+const LSK="mandate_save_v4",LSA="mandate_ach_v2";
 
 /* ---------- helpers ---------- */
 function toast(t){const d=document.createElement("div");d.className="toast";d.innerHTML=t;$("#toasts").appendChild(d);setTimeout(()=>d.remove(),3600)}
 function ach(id,label){try{const a=JSON.parse(localStorage.getItem(LSA)||"{}");if(a[id])return;a[id]=1;localStorage.setItem(LSA,JSON.stringify(a));toast("<b>ACHIEVEMENT</b> · "+label)}catch(e){}}
 function save(){try{localStorage.setItem(LSK,JSON.stringify(S))}catch(e){}}
-function show(id){$$(".screen").forEach(s=>s.classList.remove("on"));$(id).classList.add("on");window.scrollTo({top:0})}
+function show(id){const cur=document.querySelector(".screen.on");
+  if(cur&&("#"+cur.id)===id)return;
+  $$(".screen").forEach(s=>s.classList.remove("on"));$(id).classList.add("on");window.scrollTo({top:0})}
 function modal(html,locked){$("#modal").innerHTML=html;$("#modal").classList.add("on");$("#shade").classList.add("on");$("#shade").dataset.locked=locked?"1":""}
 function closeModal(){$("#modal").classList.remove("on");$("#shade").classList.remove("on")}
 $("#shade").addEventListener("click",()=>{if($("#shade").dataset.locked!=="1")closeModal()});
@@ -21,8 +23,8 @@ function flash(el){el.classList.remove("bump");void el.offsetWidth;el.classList.
 
 /* ---------- title & setup wizard ---------- */
 function dailySeed(){const d=new Date();return"daily-"+d.getUTCFullYear()+"-"+(d.getUTCMonth()+1)+"-"+d.getUTCDate()}
-$("#bt-new").onclick=()=>{cfg.seed=null;openWizard()};
-$("#bt-daily").onclick=()=>{cfg.seed=dailySeed();openWizard();toast("<b>DAILY CRISIS</b> · seed "+cfg.seed+" — identical timeline for everyone today")};
+$("#bt-new").onclick=()=>{cfg.seed=null;show("#scr-setup");openWizard()};
+$("#bt-daily").onclick=()=>{cfg.seed=dailySeed();show("#scr-setup");openWizard();toast("<b>DAILY CRISIS</b> · seed "+cfg.seed+" — identical timeline for everyone today")};
 $("#bt-continue").onclick=()=>{try{const raw=localStorage.getItem(LSK);if(!raw)return;S=E.rehydrate(JSON.parse(raw));enterGame();}catch(e){toast("Save unreadable.")}};
 $("#bt-method").onclick=()=>{modal(`<div class="lbl gold">The maths</div><h3>What's under the bonnet</h3>
  <div class="body"><p>A monthly macro model: growth mean-reverts to potential set by investment, tax drag, energy shocks, Bank rate and migration-driven labour supply; inflation anchors at 2% but is pushed by deficits, energy and minimum-wage settings; the Bank reacts mechanically (unless you lean on it, which the gilt market notices); debt compounds at deficit − g·debt. Market trust below 25 staples you to an emergency budget.</p>
@@ -62,7 +64,6 @@ function openWizard(){
   }
   $("#bt-begin").disabled=!(cfg.party&&cfg.bg);
   $("#seedline2").textContent=cfg.seed?("seed: "+cfg.seed):"random seed";
-  show("#scr-setup");
 }
 $("#bt-back").onclick=()=>show("#scr-title");
 $("#bt-begin").onclick=()=>{
@@ -76,17 +77,23 @@ $("#bt-begin").onclick=()=>{
 
 /* ---------- game shell ---------- */
 let tab="hub",prev={};
-function enterGame(){show("#scr-game");tab="hub";renderAll();save()}
+function enterGame(){
+  const col=PARTIES[S.meta.party].col;
+  document.documentElement.style.setProperty("--party",col);
+  document.documentElement.style.setProperty("--party-soft",col+"33");
+  show("#scr-game");tab="hub";renderAll();save()}
 $$("#gametabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderAll()});
 $("#bt-advance").onclick=()=>{if(!busy)advance()};
 $("#bt-abandon").onclick=()=>{modal(`<h3>Abandon this career?</h3><div class="body">History will record nothing, which is its own mercy.</div>
   <div class="menu"><button class="btn red" id="yq">Abandon</button><button class="btn ghost" id="nq">Stay</button></div>`);
   $("#yq").onclick=()=>{try{localStorage.removeItem(LSK)}catch(e){};closeModal();show("#scr-title")};$("#nq").onclick=closeModal};
 
-function renderAll(){renderHUD();renderTicker();
+function renderAll(){const sy=window.scrollY;renderHUD();renderTicker();
   $$("#gametabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
-  $$(".tabpane").forEach(p=>p.classList.toggle("on",p.id==="tab-"+tab));
+  $$(".tabpane").forEach(p=>{const on=p.id==="tab-"+tab;p.classList.toggle("on",on);if(!on)p.innerHTML=""});
+  if(tab==="office")$("#tab-office").innerHTML='<div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div>';
   ({hub:renderHub,office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign})[tab]();
+  window.scrollTo({top:sy});
 }
 function renderHUD(){
   const p=S.pols,e=S.econ,gov=S.meta.phase==="government";
@@ -155,9 +162,9 @@ function renderTreasury(){
   staged=staged||Object.assign({},S.fiscal);
   const grp=(g,title)=>`<div class="fisgroup"><h4>${title}</h4>${Object.entries(FISCAL_META).filter(([k,m])=>m.grp===g).map(([k,m])=>{
     if(m.toggle)return`<div class="sl"><label>${m.n}<span class="num">${staged[k]?"ON":"OFF"}</span></label>
-      <input type="range" min="0" max="1" step="1" value="${staged[k]}" data-f="${k}"></div>`;
+      <input type="range" id="sl-${k}" min="0" max="1" step="1" value="${staged[k]}" data-f="${k}"></div>`;
     return`<div class="sl"><label>${m.n}<span class="num" id="fv-${k}">${staged[k]}${m.unit}</span></label>
-      <input type="range" min="${m.min}" max="${m.max}" step="${m.max-m.min>20?1:0.1}" value="${staged[k]}" data-f="${k}"></div>`}).join("")}</div>`;
+      <input type="range" id="sl-${k}" min="${m.min}" max="${m.max}" step="${m.max-m.min>20?1:0.1}" value="${staged[k]}" data-f="${k}"></div>`}).join("")}</div>`;
   $("#tab-treasury").innerHTML=`
    <div class="duo">
     <div>${grp("tax","Taxation")}${grp("dial","The dials")}</div>
@@ -440,7 +447,7 @@ function electMapHTML(regions){
 
 /* ---------- core flow ---------- */
 function advance(){
-  busy=true;$("#bt-advance").disabled=true;
+  staged=null;busy=true;$("#bt-advance").disabled=true;
   const due=E.tick(S);
   due.forEach(q=>{
     if(q.head==="__BYELECTION_NEAR__")E.runByelection(S,true);
