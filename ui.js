@@ -688,33 +688,75 @@ function renderMedia(){
 /* ---------- THE CORRIDORS (hub) ---------- */
 function renderHub(){
   const gov=S.meta.phase==="government";
-  const lead=S.meta.phase==="government"?"":(" · "+(S.pols.pollMe-S.opp.gov.poll>=0?"+":"")+fmt1(S.pols.pollMe-S.opp.gov.poll)+" v gov");
   const rank=[...E.POLL_PARTIES].sort((a,b)=>S.polls[b]-S.polls[a]).indexOf(S.meta.party)+1;
+  // the Westminster village, looked down upon
   const rooms=[
-   ["office","YOUR OFFICE",36,162,188,96,"approval "+Math.round(S.pols.approval)+"%"],
-   ["cabinet",gov?"CABINET":"SHADOW CABINET",252,46,188,96,"unity "+Math.round(S.pols.unity)],
-   ["treasury",gov?"TREASURY":"SHADOW TREASURY",466,46,188,96,"deficit "+fmt1(S.fiscalDeficit)+"%"],
-   ["media","PRESS OFFICE",680,46,188,96,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
-   ["commons","THE COMMONS",252,258,188,96,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
-   ["world","SITUATION ROOM",466,258,188,96,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
-   ["campaign","CAMPAIGN HQ",680,258,188,96,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
+   // No. 10
+   ["office",gov?"PM'S OFFICE":"LOTO'S OFFICE",40,66,210,78,"approval "+Math.round(S.pols.approval)+"%"],
+   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",266,66,210,78,"unity "+Math.round(S.pols.unity)],
+   ["media","PRESS OFFICE",40,156,210,76,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
+   ["diary","THE DIARY",266,156,210,76,"skip ahead"],
+   // No. 11
+   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",534,66,184,78,"deficit "+fmt1(S.fiscalDeficit)+"%"],
+   ["econlab","ECONOMY LAB",734,66,184,78,fmt1(S.econ.infl)+"% / "+fmt1(S.econ.rates)+"%"],
+   // Palace of Westminster
+   ["commons","THE COMMONS",40,386,250,86,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
+   ["lords",(S.policy&&S.policy.lordselect)?"THE SENATE":"THE LORDS",306,386,250,86,(S.policy&&S.policy.lordselect)?"elected":((S.lords&&S.lords.peers)||0)+" peers"],
+   ["whips","WHIPS' OFFICE",40,484,250,72,"letters at "+Math.max(0,Math.round(S.pols.unity-32))],
+   // COBRA
+   ["world","SITUATION ROOM",630,386,146,86,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
+   ["intel","INTELLIGENCE",790,386,146,86,"live ops"],
+   // Party HQ
+   ["campaign","CAMPAIGN HQ",630,510,306,50,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
   ];
-  const wing=[["diary","DIARY",36,372,150,66,"skip ahead"],["whips","WHIPS",206,372,150,66,"letters "+Math.max(0,Math.round(32-(S.pols.unity-32)))],
-   ["intel","INTELLIGENCE",376,372,150,66,"3 live ops"],["lords","THE LORDS",546,372,150,66,((S.lords&&S.lords.peers)||0)+" peers"],
-   ["econlab","ECONOMY LAB",716,372,150,66,fmt1(S.econ.infl)+"% / "+fmt1(S.econ.rates)+"%"]];
-  wing.forEach(w2=>rooms.push(w2));
   const PULSE={world:!!(S.world.war||(S.world.doom||0)>0),whips:S.pols.unity<40,media:S.mediaIndex<-3,
-    econlab:S.econ.trust<35||S.econ.infl>6,treasury:S.fiscalDeficit>5,commons:false};
-  const doors=`<path class="corridor" d="M260,210 H300 M500,110 H540 M500,310 H540 M740,110 H780 M740,310 H780 M400,160 V260 M640,160 V260 M160,150 V120 H300 M160,270 V310 H300"/>`;
-  $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">No. 10 — the corridors of power · ${E.dateStr(S)}</div>
-   <svg id="hubmap" viewBox="0 0 960 460">
-    <rect x="20" y="20" width="920" height="430" rx="6" class="hubwall"/>
-    ${doors}
+    econlab:S.econ.trust<35||S.econ.infl>6,treasury:S.fiscalDeficit>5};
+  const flag=(x,y,s)=>`<use href="#ujack" x="${x}" y="${y}" ${s?`transform="scale(${s})" transform-origin="${x} ${y}"`:""}/>`;
+  const bunting=[80,190,300,410,520,640,760,870].map((x,i)=>flag(x,300+(i%2?4:0),0.8)).join("");
+  $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">${gov?"THE VILLAGE — Whitehall from above":"THE VILLAGE — opposition footing"} · ${E.dateStr(S)}</div>
+   <svg id="hubmap" viewBox="0 0 960 600">
+    <defs><g id="ujack">
+      <rect width="26" height="14" fill="#012169"/>
+      <path d="M0,0 26,14 M26,0 0,14" stroke="#fff" stroke-width="3.4"/>
+      <path d="M0,0 26,14 M26,0 0,14" stroke="#C8102E" stroke-width="1.4"/>
+      <rect x="10.4" width="5.2" height="14" fill="#fff"/><rect y="4.6" width="26" height="4.8" fill="#fff"/>
+      <rect x="11.7" width="2.6" height="14" fill="#C8102E"/><rect y="5.8" width="26" height="2.4" fill="#C8102E"/>
+    </g></defs>
+    <!-- garden behind No.10 -->
+    <rect x="24" y="18" width="470" height="26" class="hedge"/><text x="259" y="35" class="bldglbl dim">THE GARDEN</text>
+    <!-- No. 10 -->
+    <rect x="24" y="50" width="470" height="196" class="bldg"/>
+    <text x="38" y="63" class="bldglbl">NO. 10</text>${flag(458,54)}
+    <!-- No. 11 -->
+    <rect x="518" y="50" width="418" height="196" class="bldg"/>
+    <text x="532" y="63" class="bldglbl">NO. 11 — HM TREASURY</text>${flag(900,54)}
+    <!-- the famous door -->
+    <path d="M236,246 a14,14 0 0 1 28,0 z" class="doorarch"/>
+    <rect x="238" y="246" width="24" height="26" class="door10"/>
+    <text x="250" y="263" class="doorten">10</text>
+    ${flag(206,252)}${flag(268,252)}
+    <!-- the street -->
+    <rect x="0" y="282" width="960" height="44" class="street"/>
+    <line x1="0" y1="304" x2="960" y2="304" class="streetline"/>
+    <text x="40" y="299" class="streetlbl">DOWNING STREET</text>
+    <text x="760" y="321" class="streetlbl">WHITEHALL · SW1</text>
+    ${bunting}
+    <!-- Palace of Westminster -->
+    <rect x="24" y="350" width="560" height="216" class="bldg"/>
+    <text x="38" y="368" class="bldglbl">PALACE OF WESTMINSTER</text>${flag(548,356)}
+    <!-- COBRA -->
+    <rect x="608" y="350" width="328" height="132" class="bldg cobra"/>
+    <text x="622" y="368" class="bldglbl">COBRA — BELOW WHITEHALL</text>
+    <!-- Party HQ -->
+    <rect x="608" y="498" width="328" height="68" class="bldg"/>
+    <text x="622" y="512" class="bldglbl">${PARTIES[S.meta.party].name.toUpperCase()} HQ</text>${flag(900,502)}
     ${rooms.map(r=>`<g class="room${r[0]==="world"&&S.world.war?" warroom":""}${PULSE[r[0]]?" pulse":""}" data-t="${r[0]}">
       <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="3"/>
-      <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2-8}" class="rmname">${r[1]}</text>
+      <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2-7}" class="rmname">${r[1]}</text>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2+14}" class="rmstat">${r[6]}</text></g>`).join("")}
-    <text x="40" y="38" text-anchor="start" class="hubtitle">${gov?"10 DOWNING STREET":"LEADER OF THE OPPOSITION'S OFFICE"}</text>
+    <!-- cabinet table -->
+    <ellipse cx="371" cy="98" rx="62" ry="10" class="cabtable"/>
+    ${Array.from({length:10},(_,i)=>`<circle cx="${318+i*12}" cy="${i%2?86:110}" r="1.8" class="cabchair"/>`).join("")}
    </svg>
    <div class="hubstrip"><span class="lbl gold">Today's front page</span> <b>${S.paper.head}</b></div>`;
   $$("#hubmap .room").forEach(g=>g.onclick=()=>{tab=g.dataset.t;renderAll()});
