@@ -69,11 +69,13 @@ function newGame(cfg){
   Object.defineProperty(S,"year",{get(){return this.meta.startYear+Math.floor((this.meta.startMon+this.meta.month)/12)},configurable:true});
   Object.defineProperty(S,"mediaIndex",{get(){const o=this.media.outlets;return o.reduce((a,x)=>a+x.stance*x.reach,0)/o.reduce((a,x)=>a+x.reach,0)},configurable:true});
   Object.defineProperty(S,"fiscalDeficit",{get(){return spendOf(this.fiscal)+this.econ.spendBump-revenueOf(this.fiscal)-this.econ.revBump},configurable:true});
+  initPolls(S);
   S.hist.app.push(S.pols.approval);S.hist.gdp.push(100);S.hist.pollMe.push(S.pols.pollMe);S.hist.pollGov.push(S.opp?S.opp.gov.poll:40);
   return S;
 }
 function rehydrate(S){ // after JSON load
   attachRng(S);
+  if(!S.polls){S.hist=S.hist||{};initPolls(S)}
   Object.defineProperty(S,"majority",{get(){return this.party.seats*2-650},configurable:true});
   Object.defineProperty(S,"moy",{get(){return (this.meta.startMon+this.meta.month)%12},configurable:true});
   Object.defineProperty(S,"year",{get(){return this.meta.startYear+Math.floor((this.meta.startMon+this.meta.month)/12)},configurable:true});
@@ -83,6 +85,52 @@ function rehydrate(S){ // after JSON load
 }
 function basePoll(S){const sizes={lab:33,con:30,lib:14,ref:18,grn:9};return sizes[S.meta.party]||20}
 function dateStr(S){return ["January","February","March","April","May","June","July","August","September","October","November","December"][S.moy]+" "+S.year}
+
+
+/* ---------- national polls: one machine feeds HUD, charts and elections ---------- */
+const POLL_PARTIES=["lab","con","lib","ref","grn","snp"];
+function initPolls(S){
+  const base={lab:31,con:28,lib:13,ref:17,grn:8,snp:3};
+  const polls={...base};
+  const mine=S.meta.party;
+  if(S.meta.phase==="government")polls[mine]=clamp(24+0.42*S.pols.approval,20,48);
+  else{polls[mine]=basePoll(S);polls[S.opp.gov.party]=30;}
+  const t=Object.values(polls).reduce((a,b)=>a+b,0);
+  for(const k in polls)polls[k]=polls[k]/t*96;
+  S.polls=polls;
+  S.hist.polls={};
+  for(const k of POLL_PARTIES)S.hist.polls[k]=[polls[k],polls[k]+(_mul32(S.meta.rngState+1)-.5),polls[k]];
+  S.pols.pollMe=polls[mine];
+  if(S.opp)S.opp.gov.poll=polls[S.opp.gov.party];
+}
+function tickPolls(S){
+  const mine=S.meta.party;
+  const base={lab:25,con:23,lib:12,ref:15,grn:8};
+  const tgt={};
+  if(S.meta.phase==="government"){
+    tgt[mine]=clamp(24+0.42*S.pols.approval,16,50);
+    const riv=PARTIES[mine].rival;
+    tgt[riv]=clamp(27+(46-tgt[mine])*0.55+(S.pols.oppStr-50)*0.25,14,46);
+    for(const k of POLL_PARTIES)if(tgt[k]===undefined&&k!=="snp")tgt[k]=base[k]||8;
+  }else{
+    const G=S.opp.gov;
+    tgt[G.party]=clamp(24+0.30*G.approval-G.fatigue*0.5,12,48);
+    tgt[mine]=clamp(basePoll(S)+(42-G.approval)*0.5+(S.pols.approval-42)*0.35+S.mediaIndex/9,8,52);
+    for(const k of POLL_PARTIES)if(tgt[k]===undefined&&k!=="snp")tgt[k]=base[k]||8;
+  }
+  tgt.snp=clamp(3+(S.world.scot-42)/25,1.5,6);
+  for(const k of POLL_PARTIES)S.polls[k]=clamp(S.polls[k]+0.22*((tgt[k]??S.polls[k])-S.polls[k])+(S.rng()-.5)*0.9,1,55);
+  const t=Object.values(S.polls).reduce((a,b)=>a+b,0);
+  for(const k of POLL_PARTIES){S.polls[k]=S.polls[k]/t*96;S.hist.polls[k].push(S.polls[k]);if(S.hist.polls[k].length>180)S.hist.polls[k].shift();}
+  S.pols.pollMe=S.polls[mine];
+  if(S.opp)S.opp.gov.poll=S.polls[S.opp.gov.party];
+}
+function projectElection(S){
+  const keep=S.meta.rngState;
+  const r=computeElection(S,0);
+  S.meta.rngState=keep;
+  return r;
+}
 
 /* ---------- unity / ideology ---------- */
 function recomputeUnity(S){S.pols.unity=clamp(S.party.factions.reduce((a,f)=>a+f.w*f.happy,0),0,100)}
@@ -185,7 +233,6 @@ function tick(S){
       -0.55*Math.max(0,S.svc.nhsWait-5.5)-(S.svc.crime-100)/25
       -(S.flags.migSalient?Math.max(0,(S.svc.mig-450))/120:Math.max(0,(S.svc.mig-600))/200);
     S.pols.approval=clamp(S.pols.approval+0.27*(tgt-S.pols.approval)+(S.rng()-.5)*2.8*DF.shock,3,88);
-    S.pols.pollMe=clamp(S.pols.pollMe+0.3*((24+0.42*S.pols.approval)-S.pols.pollMe),5,60);
     S.pols.oppStr=clamp(S.pols.oppStr+(S.rng()-.5)*3,25,75);
   } else {
     // AI government simulates
@@ -202,12 +249,9 @@ function tick(S){
     // my favourability + polls
     const myTgt=42+(S.pols.unity-55)/8+S.mediaIndex/9+(S.flags.platformSet?2:0);
     S.pols.approval=clamp(S.pols.approval+0.2*(myTgt-S.pols.approval)+(S.rng()-.5)*2.4,3,88);
-    const pollTgt=basePoll(S)+(42-G.approval)*0.5+(S.pols.approval-42)*0.35+S.mediaIndex/9;
-    S.pols.pollMe=clamp(S.pols.pollMe+0.25*(pollTgt-S.pols.pollMe)+(S.rng()-.5)*1.2,4,58);
-    const gPollTgt=24+0.30*G.approval-G.fatigue*0.5;
-    G.poll=clamp(G.poll+0.25*(gPollTgt-G.poll)+(S.rng()-.5)*1.2,8,55);
     S.opp.electionDue--;
   }
+  tickPolls(S);
   S.score.peakApp=Math.max(S.score.peakApp,S.pols.approval);
   // ministers' public approval drifts; stars breed leadership chatter
   S.cabinet.forEach(m=>{m.app=clamp(m.app+0.1*((m.base??m.app)-m.app)+(S.rng()-.5)*2,5,80)});
@@ -534,17 +578,14 @@ function computeElection(S,boost){
   const P=PARTIES[S.meta.party];
   const isGov=S.meta.phase==="government";
   const econMood=1.4*S.econ.g-1.1*Math.max(0,S.econ.infl-2)-0.8*(S.econ.unemp-4.2);
-  let me=isGov?clamp(24+0.40*S.pols.approval+econMood+(boost||0)-(S.pols.oppStr-50)/8,14,56)
-             :clamp(S.pols.pollMe+(boost||0)+econMood*0.2,12,56);
   const rivalKey=isGov?P.rival:S.opp.gov.party;
-  let rv=isGov?clamp(27+3+(46-me)*0.8+(S.pols.oppStr-50)*0.3,12,50)
-             :clamp(S.opp.gov.poll+(S.rng()*4-2),10,52);
+  const me=clamp((S.polls?S.polls[S.meta.party]:30)+(boost||0)+econMood*0.15,10,57);
   const rows=[{n:P.name+" (you)",key:S.meta.party,v:me,c:P.col,you:true},
-    {n:PARTIES[rivalKey].name+(isGov?"":" (gov)"),key:rivalKey,v:rv,c:PARTIES[rivalKey].col}];
+    {n:PARTIES[rivalKey].name+(isGov?"":" (gov)"),key:rivalKey,
+     v:clamp((S.polls?S.polls[rivalKey]:28)+(S.rng()*3-1.5),8,52),c:PARTIES[rivalKey].col}];
   for(const k of Object.keys(PARTIES)){if(k===S.meta.party||k===rivalKey||k==="snp")continue;
-    const bp={lab:23,con:21,lib:11,ref:14,grn:7}[k]||6;
-    rows.push({n:PARTIES[k].name,key:k,v:Math.max(2.5,bp*0.65+(S.rng()*6-3)),c:PARTIES[k].col})}
-  rows.push({n:"SNP",key:"snp",v:Math.max(2,3+(S.world.scot-42)/30),c:PARTIES.snp.col});
+    rows.push({n:PARTIES[k].name,key:k,v:Math.max(2,(S.polls?S.polls[k]:8)+(S.rng()*2-1)),c:PARTIES[k].col})}
+  rows.push({n:"SNP",key:"snp",v:Math.max(1.5,S.polls?S.polls.snp:3),c:PARTIES.snp.col});
   const tot=rows.reduce((a,r)=>a+r.v,0);rows.forEach(r=>{r.v=r.v/tot*96;r.seats=0});
   const target=S.flags.targetRegion;
   const youIdx=0;
@@ -644,7 +685,7 @@ function nextInteraction(S){
 }
 
 /* ---------- exports ---------- */
-const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,adviceFor,applyEffects,swapMinister,debateResolve,
+const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
   computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,

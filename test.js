@@ -17,6 +17,7 @@ function check(S,w){
   for(const k in S.world.regions)fin(S.world.regions[k].rel,w+" rel "+k);
   Object.values(S.svc).forEach(v=>fin(v,w+" svc"));
   S.cabinet.forEach(m=>fin(m.app,w+" minister"));
+  if(S.polls)Object.values(S.polls).forEach(v=>fin(v,w+" pollshare"));
 }
 function R(){return Math.random()}
 

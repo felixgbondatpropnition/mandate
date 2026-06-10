@@ -65,10 +65,11 @@ function click(el, what) {
     assert(/Career politician/.test(bTxt), "career politician background present");
     click([...$$("#pickbg .opt")].find(o => /entrepreneur/i.test(o.textContent)), "background");
     await sleep(260);
-    assert(/ballot paper/i.test($("#wizbody").textContent), "summary step");
+    assert(/Your setup/i.test($("#wizbody").textContent), "summary step");
     $("#pmname").value = "Smoke Test";
     click($("#bt-begin"), "begin");
     assert($("#scr-game").classList.contains("on"), "game screen on");
+    for(let p=0;p<8&&$("#modal").classList.contains("on");p++){const n=$("#primer-next");if(n)click(n,"primer");else break;await sleep(30);}
     assert($$("#hubmap .room").length >= 7, "hub rooms drawn");
 
     // visit every room
@@ -78,6 +79,20 @@ function click(el, what) {
       assert(pane.classList.contains("on"), "pane on: " + t);
       assert(pane.innerHTML.trim().length > 50, "pane has content: " + t);
     }
+
+    // v4 asserts: game frame, real map, projection, multi-party polls, menu
+    assert($("#bt-menu"), "menu button exists");
+    assert(!$("#bt-abandon"), "abandon removed");
+    click($('#gametabs button[data-t="world"]'), "world for map check");
+    assert($("#wm-zin") && $("#wm-zout") && $("#wm-zreset"), "map zoom controls");
+    assert($$("#worldmap .land").length >= 12, "real continents drawn");
+    click($('#gametabs button[data-t="campaign"]'), "campaign for projection");
+    assert(/IF THE ELECTION WERE TODAY/i.test($("#tab-campaign").textContent), "live projection present");
+    click($('#gametabs button[data-t="office"]'), "office for polls");
+    assert($$(".pl-chip").length >= 5, "multi-party poll legend");
+    click($("#bt-menu"), "open menu");
+    assert(/Save this career/i.test($("#modal").textContent), "career menu");
+    click($("#mm-resume"), "resume");
 
     // cabinet: real Labour ministers + a reshuffle through the bench modal
     click($('#gametabs button[data-t="cabinet"]'), "cabinet tab");
@@ -166,6 +181,7 @@ function click(el, what) {
     q("#pmname").value = "Opp Smoke";
     click2(q("#bt-begin"), "begin opp");
     assert(q("#scr-game").classList.contains("on"), "opp game on");
+    for(let p=0;p<8&&q("#modal").classList.contains("on");p++){const n=q("#primer-next");if(n)click2(n,"opp primer");else break;await sleep(30);}
     assert(/Leader of the Opposition/.test(q("#hud-name").textContent), "LOTO label");
     click2(q('#gametabs button[data-t="treasury"]'), "opp treasury");
     assert(q("#bt-platform"), "platform button (opposition treasury)");

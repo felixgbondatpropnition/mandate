@@ -277,3 +277,51 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
   color:var(--party);cursor:pointer;margin-left:8px;border-bottom:1px dotted var(--party)}
 .wizchg:hover{color:var(--ink)}
 #wizbody .pick{margin-top:0}
+
+/* ===== v4: the game frame ===== */
+#scr-game.on{display:flex;flex-direction:column;position:fixed;inset:0;z-index:5;background:var(--bg)}
+#scr-game .hud{position:static;margin:0}
+#gamemain{display:flex;flex:1;min-height:0}
+#gametabs{display:flex;flex-direction:column;gap:4px;width:178px;min-width:178px;padding:14px 10px;
+  background:var(--well);border-right:1px solid var(--hair);clip-path:none;border-bottom:none;margin:0;overflow-y:auto}
+#gametabs button{display:flex;align-items:center;gap:10px;text-align:left;padding:12px 12px;font-size:10.5px;
+  border:1px solid transparent;border-radius:2px}
+#gametabs button .ico{font-size:15px;width:18px;text-align:center;font-family:var(--serif)}
+#gametabs button.on{background:color-mix(in srgb,var(--party) 60%,#0a0c12);color:#fff;border-color:color-mix(in srgb,var(--party) 60%,transparent)}
+#viewport{flex:1;overflow-y:auto;padding:16px 20px 30px;min-width:0}
+#dock{display:flex;align-items:center;gap:18px;padding:12px 20px;background:var(--well);border-top:1px solid var(--hair2);flex-wrap:wrap}
+#bt-advance{font-size:13px;padding:15px 32px;letter-spacing:.16em;box-shadow:0 6px 26px var(--party-soft)}
+#capwrap{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:200px}
+#capwrap .track{width:140px}
+#topbar .tile{cursor:pointer}
+#topbar .tile:hover{border-color:var(--party)}
+.seclbl{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--mut);display:block;margin:4px 0 8px}
+@media(max-width:900px){
+  #gamemain{flex-direction:column}
+  #gametabs{flex-direction:row;width:auto;min-width:0;overflow-x:auto;border-right:none;border-bottom:1px solid var(--hair)}
+  #gametabs button span:last-child{display:none}
+}
+
+/* ===== v4: the real map ===== */
+#mapframe{position:relative;border:1px solid var(--hair);background:#091020}
+#worldmap{display:block;width:100%;height:auto;cursor:grab;touch-action:none}
+#worldmap:active{cursor:grabbing}
+.ocean{fill:#0a1322}
+.land{fill:#1a2636;stroke:rgba(233,236,242,.2);stroke-width:.7}
+.grat{stroke:rgba(233,236,242,.045);stroke-width:.6}
+#mapzoom{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px}
+#mapzoom button{width:30px;height:30px;background:var(--panel2);border:1px solid var(--hair2);color:var(--ink);
+  font-size:15px;font-weight:700;border-radius:2px}
+#mapzoom button:hover{border-color:var(--party)}
+.rocc{fill:var(--redder);font-family:var(--sans);font-size:7.5px;font-weight:700;letter-spacing:.08em;text-anchor:middle}
+.rnode circle{stroke:rgba(0,0,0,.6);stroke-width:1}
+.rnode .rlabel{font-size:7.5px}
+
+/* ===== v4: poll legend ===== */
+.polleg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pl-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-size:10px;font-weight:600;
+  letter-spacing:.04em;color:var(--ink2);background:var(--well);border:1px solid var(--hair);padding:4px 9px}
+.pl-chip i{width:9px;height:9px;display:inline-block}
+.pl-chip.me{border-color:var(--party);color:var(--ink)}
+.pgrid{stroke:rgba(233,236,242,.07)}
+.pgl{fill:var(--mut);font-family:var(--mono);font-size:8px}

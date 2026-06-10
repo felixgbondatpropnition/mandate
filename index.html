@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Libre+Franklin:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <div class="grain"></div>
@@ -21,10 +21,10 @@
     <p class="sub">Start in No. 10 — or in the wilderness, hunting the government that lives there. A full macro-economy, a world to manage, a press to feed, a party to hold together, wars to win and elections to call. Everything is priced. Everything compounds.</p>
     <div class="menu">
       <button class="btn" id="bt-new">New career</button>
-      <button class="btn ghost" id="bt-continue" disabled>Continue</button>
+      <button class="btn ghost" id="bt-continue">Careers</button>
       <button class="btn ghost" id="bt-method">The maths</button>
     </div>
-    <div class="seedline">BUILD v3.2 · 10 JUNE 2026 — if this line says anything else, hard-refresh (⌘⇧R)</div>
+    <div class="seedline">BUILD v4.0 · 10 JUNE 2026 — if this line says anything else, hard-refresh (⌘⇧R)</div>
   </div>
 
   <!-- SETUP WIZARD -->
@@ -39,43 +39,47 @@
 
   <!-- GAME -->
   <div class="screen" id="scr-game">
-    <div class="hud"><div class="hudin">
+    <div class="hud" id="topbar"><div class="hudin">
       <div class="who"><b id="hud-name"></b><span class="lbl" id="hud-date"></span></div>
-      <div class="tile"><div class="v num" id="t-app"></div><div class="k">Approval</div><div class="d num" id="d-app"></div></div>
-      <div class="tile"><div class="v num" id="t-poll"></div><div class="k" id="k-poll">Poll share</div><div class="d num" id="d-poll"></div></div>
-      <div class="tile"><div class="v num" id="t-seat"></div><div class="k" id="k-seat">Majority</div><div class="d num" id="d-seat"></div></div>
-      <div class="tile"><div class="v num" id="t-unity"></div><div class="k">Unity</div><div class="d num" id="d-unity"></div></div>
-      <div class="tile"><div class="v num" id="t-gdp"></div><div class="k">Growth</div><div class="d num" id="d-gdp"></div></div>
-      <div class="tile"><div class="v num" id="t-infl"></div><div class="k">Inflation</div><div class="d num" id="d-infl"></div></div>
-      <div class="tile"><div class="v num" id="t-cap"></div><div class="k">Capital</div><div class="d num" id="d-cap"></div></div>
+      <div class="tile" data-h="app"><div class="v num" id="t-app"></div><div class="k">Approval</div><div class="d num" id="d-app"></div></div>
+      <div class="tile" data-h="poll"><div class="v num" id="t-poll"></div><div class="k" id="k-poll">Polls</div><div class="d num" id="d-poll"></div></div>
+      <div class="tile" data-h="seat"><div class="v num" id="t-seat"></div><div class="k" id="k-seat">Majority</div><div class="d num" id="d-seat"></div></div>
+      <div class="tile" data-h="unity"><div class="v num" id="t-unity"></div><div class="k">Unity</div><div class="d num" id="d-unity"></div></div>
+      <div class="tile" data-h="gdp"><div class="v num" id="t-gdp"></div><div class="k">Growth</div><div class="d num" id="d-gdp"></div></div>
+      <div class="tile" data-h="infl"><div class="v num" id="t-infl"></div><div class="k">Inflation</div><div class="d num" id="d-infl"></div></div>
+      <div class="tile" data-h="cap"><div class="v num" id="t-cap"></div><div class="k">Capital</div><div class="d num" id="d-cap"></div></div>
+      <div class="tile" data-h="elect"><div class="v num" id="t-elect"></div><div class="k">Election</div><div class="d num">&nbsp;</div></div>
+      <button class="btn ghost small" id="bt-help" title="How the game works">?</button>
+      <button class="btn ghost small" id="bt-menu">Menu</button>
     </div></div>
     <div class="tickerbar"><div class="tickerin" id="tickerin"></div></div>
-
-    <div class="gametabs" id="gametabs">
-      <button data-t="hub" class="on">Corridors</button>
-      <button data-t="office">Office</button>
-      <button data-t="cabinet">Cabinet</button>
-      <button data-t="treasury">Treasury</button>
-      <button data-t="commons">Commons</button>
-      <button data-t="world">Situation</button>
-      <button data-t="media">Press</button>
-      <button data-t="campaign">Campaign HQ</button>
+    <div id="gamemain">
+      <nav id="gametabs">
+        <button data-t="hub" class="on"><span class="ico">⌂</span><span>Corridors</span></button>
+        <button data-t="office"><span class="ico">▤</span><span>Office</span></button>
+        <button data-t="cabinet"><span class="ico">♟</span><span>Cabinet</span></button>
+        <button data-t="treasury"><span class="ico">£</span><span>Treasury</span></button>
+        <button data-t="commons"><span class="ico">⚖</span><span>Commons</span></button>
+        <button data-t="world"><span class="ico">◍</span><span>Situation</span></button>
+        <button data-t="media"><span class="ico">✎</span><span>Press</span></button>
+        <button data-t="campaign"><span class="ico">⚑</span><span>Campaign HQ</span></button>
+      </nav>
+      <div id="viewport">
+        <div class="tabpane on" id="tab-hub"></div>
+        <div class="tabpane" id="tab-office"><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div></div>
+        <div class="tabpane" id="tab-cabinet"></div>
+        <div class="tabpane" id="tab-treasury"></div>
+        <div class="tabpane" id="tab-commons"></div>
+        <div class="tabpane" id="tab-world"></div>
+        <div class="tabpane" id="tab-media"></div>
+        <div class="tabpane" id="tab-campaign"></div>
+      </div>
     </div>
-
-    <div class="advbar">
-      <button class="btn" id="bt-advance">Advance month ▸</button>
-      <span class="dim small">Take as many actions as capital allows, then advance. Events will find you.</span>
-      <button class="btn ghost small" id="bt-abandon" style="margin-left:auto">Abandon</button>
+    <div id="dock">
+      <button class="btn" id="bt-advance">ADVANCE ▸</button>
+      <span class="dim small" id="dockhint">Do as much as your capital allows, then advance the month. Events will find you.</span>
+      <div id="capwrap"><span class="lbl">Capital</span><div class="track big"><div class="fill" id="capfill"></div></div></div>
     </div>
-
-    <div class="tabpane on" id="tab-hub"></div>
-    <div class="tabpane" id="tab-office"><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div></div>
-    <div class="tabpane" id="tab-cabinet"></div>
-    <div class="tabpane" id="tab-treasury"></div>
-    <div class="tabpane" id="tab-commons"></div>
-    <div class="tabpane" id="tab-world"></div>
-    <div class="tabpane" id="tab-media"></div>
-    <div class="tabpane" id="tab-campaign"></div>
   </div>
 
   <!-- ENDING -->
@@ -99,13 +103,13 @@
 <div class="toastwrap" id="toasts"></div>
 
 <footer>
-  <span>MANDATE · BUILD v3.2 · 10 JUNE 2026 · engine fleet 140/140 · ui smoke passed</span>
+  <span>MANDATE · BUILD v4.0 · 10 JUNE 2026 · engine fleet 140/140 · ui smoke passed</span>
   <div class="sharebar"><input class="shareurl" id="shareurl" readonly value="https://felixgbondatpropnition.github.io/mandate/">
   <button class="btn" style="padding:10px 18px" id="copybtn">Copy link</button></div>
 </footer>
 
-<script src="data.js?v=6"></script>
-<script src="engine.js?v=6"></script>
-<script src="ui.js?v=6"></script>
+<script src="data.js?v=7"></script>
+<script src="engine.js?v=7"></script>
+<script src="ui.js?v=7"></script>
 </body>
 </html>
