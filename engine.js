@@ -1085,14 +1085,35 @@ function settleElectionLoss(S){
     S.opp={gov:{party:newGov,pm:S.pols.oppName,approval:50,poll:36,fatigue:0,lastBlunder:null,monthsIn:0},
       electionDue:58,warchest:3};
     S.pols.pollMe=basePoll(S)-4;applyEffects(S,{unity:-10,capital:-10});
+    S.meta.electionsLost=(S.meta.electionsLost||0)+1;
     frontPage(S,"THE REMOVAL VAN","It was, it turns out, idling for a reason. "+S.opp.gov.pm+" is Prime Minister by lunchtime; you are Leader of the Opposition by teatime, pending the plotters.");
     log(S,"LOST POWER — now Leader of the Opposition");
     return"survive";
   }
-  // lost AS opposition: party patience depends on gains
+  // lost AS opposition: the career does NOT end here — the party gets a say
   const gained=S.pols.pollMe>basePoll(S)+1.5;
-  if(gained){S.opp.electionDue=58;applyEffects(S,{unity:-6,poll:-1});frontPage(S,"CLOSE, BUT","Gains, momentum, a hung-ish parliament — and yet the other side of the door. The party, narrowly, lets you stay.");log(S,"Lost the election; survived as leader");return"survive"}
-  S.meta.over=true;frontPage(S,"THE PARTY MOVES ON","Defeat without progress is a verdict. The shadow cabinet's tributes are warm enough to be insulting.");log(S,"Deposed after election defeat");return"deposed";
+  S.meta.electionsLost=(S.meta.electionsLost||0)+1;
+  S.flags._lastLossGained=gained;
+  S.opp.electionDue=58;
+  applyEffects(S,gained?{unity:-6,poll:-1}:{unity:-12,poll:-1.5,capital:-8});
+  frontPage(S,gained?"CLOSE, BUT":"A BAD NIGHT",
+    gained?"Gains, momentum, a hung-ish parliament — and yet the other side of the door. Now your party decides what your progress was worth."
+          :"No progress, no excuses left unused. The shadow cabinet's statements of support arrive suspiciously fast and suspiciously identical.");
+  log(S,"Lost the election — leadership in question");
+  return"contest";
+}
+function leadershipVote(S){
+  const gained=!!S.flags._lastLossGained;delete S.flags._lastLossGained;
+  const lost=S.meta.electionsLost||1;
+  const p=clamp(0.55+(gained?0.25:0)+(S.pols.unity-50)/130-(lost-1)*0.18,0.07,0.93);
+  const survive=S.rng()<p;
+  if(survive){applyEffects(S,{unity:-6});
+    frontPage(S,"THE LEADER STAYS","The confidence vote falls your way. Not a coronation — a stay of execution with paperwork. Make it count.");
+    log(S,"Survived the post-election confidence vote");}
+  else{S.meta.over=true;
+    frontPage(S,"THE PARTY MOVES ON","The vote goes against you. The tributes are warm enough to be insulting; the removal of your portrait takes four minutes.");
+    log(S,"Deposed after election defeat");}
+  return{survive,pct:Math.round(p*100),gained};
 }
 
 /* ---------- TV debate ---------- */
@@ -1241,7 +1262,7 @@ function nextInteraction(S){
 const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,genEvent,genComboCount,answerShift,partyIssuePos,pmqPoolCount,maybeShock,houseSeatTransfer,declareWar,nukeStrike,requestQE,appointGovernor,appointPeers,whipAction,whipJobs,lordsObstruct,fiscalPledge,intelOp,rapport,bumpRapport,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,interviewBuild,interviewAnswer,interviewFinish,enactOppBill,partySummit,poachMP,proposePact,proposeMerger,setStance,stanceBonus,relOf,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
-  computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,
+  computeElection,settleElectionWin,settleElectionLoss,leadershipVote,legacy,verdictText,frontPage,log,tick_news,
   revenueOf,spendOf,dateStr,clamp,sig};
 globalThis.__MANDATE__=ENGINE;
 if(typeof module!=="undefined")module.exports=ENGINE;

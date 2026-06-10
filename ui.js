@@ -1313,7 +1313,24 @@ function openElection(it){
         E.applyEffects(S,{unity:-4});renderAll();save();done()}}
     else{$("#elx").onclick=()=>{closeModal();
       const out=E.settleElectionLoss(S);E.setHouse(S,R);
-      if(out==="deposed"){endGame("deposed");return}
+      if(out==="contest"){
+        const gained=!!S.flags._lastLossGained;
+        modal(`<div class="lbl gold">The morning after</div>
+         <h3>${gained?"You lost — but you moved the dial.":"You lost, and the party knows it."}</h3>
+         <div class="body">${gained?"Seats gained, swing banked, government wounded. The 1922-style committee meets at noon anyway — that's the trade. Your odds are decent.":"No progress to point at. The letters are already in; the vote is tonight. You can face it, or leave on your own terms."}</div>
+         <div class="menu">
+          <button class="btn" id="el-fight">Fight the confidence vote</button>
+          <button class="btn ghost" id="el-quit">Resign on your own terms</button>
+         </div>`,true);
+        $("#el-quit").onclick=()=>{closeModal();endGame("resign")};
+        $("#el-fight").onclick=()=>{closeModal();
+          const lv=E.leadershipVote(S);
+          if(!lv.survive){endGame("deposed");return}
+          modal(`<div class="lbl gold">The confidence vote</div><h3>You survive — ${lv.pct}% was the number.</h3>
+           <div class="body">Bloodied, narrower, still the leader. Five more years of opposition starts tomorrow at six.</div>
+           <div class="menu"><button class="btn" id="el-on">Back to work</button></div>`,true);
+          $("#el-on").onclick=()=>{closeModal();renderAll();save();done()};};
+        return;}
       renderAll();save();done()}}
   };
   stepFn();

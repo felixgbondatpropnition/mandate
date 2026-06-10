@@ -241,7 +241,7 @@ for(const cfg of MATRIX){
         if(maj>0){E.settleElectionWin(S,mine);if(S.meta.phase==="government"&&phaseBefore==="opposition")counts.phaseSwapsToGov++}
         else if(mine>=Math.max(...res.rows.slice(1,-2).map(r=>r.seats))&&R()<0.5){E.settleElectionWin(S,322);S.flags.minority=true}
         else{const out=E.settleElectionLoss(S);
-          if(out==="deposed"){endKind="deposed";break}
+          if(out==="contest"&&!E.leadershipVote(S).survive){endKind="deposed";break}
           counts.phaseSwapsToOpp+= S.meta.phase==="opposition"&&phaseBefore==="government"?1:0;}
         continue}
       // event
