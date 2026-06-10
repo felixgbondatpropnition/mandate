@@ -13,40 +13,42 @@ const D_LN=["Okafor","MacLeod","Pemberton","Shah","Whitfield","O'Donnell","Hargr
 const PARTIES={
  lab:{name:"Labour",col:"#d04a44",ideal:{e:-1.1,s:-0.3},
    govSeats:361,oppSeats:198,unity:58,trust:55,app:46,
-   factions:[["The Left",.30,{e:-1.9,s:-.8},"Mo Sefton"],["Soft Left",.40,{e:-1.1,s:-.4},"Janet Okafor"],["Modernisers",.30,{e:-.3,s:.1},"Daniel Hartley"]],
+   factions:[["The Left",.30,{e:-1.9,s:-.8},"John McDonnell"],["Soft Left",.40,{e:-1.1,s:-.4},"Lucy Powell"],["Modernisers",.30,{e:-.3,s:.1},"Pat McFadden"]],
    region:{north:1.25,mid:1.05,lon:1.2,south:.75,scot:.9,wales:1.2},
    rival:"con",blurb:"The people's party — and the people's expectations. The unions kept the receipts.",
    oppBlurb:"Out of power, in a queue of grievances. Win back the towns or haunt the seminar rooms forever."},
  con:{name:"Conservative",col:"#2a64b8",ideal:{e:1.1,s:.8},
    govSeats:349,oppSeats:175,unity:52,trust:62,app:44,
-   factions:[["One Nation",.35,{e:.4,s:-.1},"Camilla Yorke"],["Thatcherites",.40,{e:1.7,s:.7},"Rupert Voss"],["National Right",.25,{e:1.2,s:1.8},"Lee Cragg"]],
+   factions:[["One Nation",.35,{e:.4,s:-.1},"Tom Tugendhat"],["Thatcherites",.40,{e:1.7,s:.7},"Liz Truss"],["National Right",.25,{e:1.2,s:1.8},"Suella Braverman"]],
    region:{north:.8,mid:1.05,lon:.85,south:1.35,scot:.6,wales:.8},
    rival:"lab",blurb:"The natural party of government, currently checking the natural order is still on.",
    oppBlurb:"The party that removes leaders for sport now needs one who can win. The members have opinions."},
  lib:{name:"Liberal Democrat",col:"#e8a13c",ideal:{e:-.4,s:-1},
    govSeats:332,oppSeats:78,unity:70,trust:58,app:48,
-   factions:[["Orange Book",.30,{e:.3,s:-.8},"Theo Marsh"],["Social Liberals",.45,{e:-.8,s:-1.1},"Anika Rai"],["The Activists",.25,{e:-1.2,s:-1.6},"Wendy Prout"]],
+   factions:[["Orange Book",.30,{e:.3,s:-.8},"Christine Jardine"],["Social Liberals",.45,{e:-.8,s:-1.1},"Layla Moran"],["The Activists",.25,{e:-1.2,s:-1.6},"Daisy Cooper"]],
    region:{north:.8,mid:.9,lon:1.1,south:1.3,scot:.8,wales:.9},
    rival:"con",blurb:"The polite revolution actually happened. Nobody is more surprised than the spreadsheet.",
    oppBlurb:"Seventy-eight seats and a dream: be the grown-up in a room that keeps setting itself on fire."},
  ref:{name:"Reform UK",col:"#36c2d9",ideal:{e:1.4,s:1.6},
    govSeats:336,oppSeats:92,unity:44,trust:42,app:45,
-   factions:[["The Leader's Circle",.40,{e:1.2,s:1.6},"Davey Stone"],["Free Marketeers",.30,{e:2,s:.6},"Miranda Pike"],["Red Wall Populists",.30,{e:.1,s:1.9},"Terry Bowden"]],
+   factions:[["The Leader's Circle",.40,{e:1.2,s:1.6},"Richard Tice"],["Free Marketeers",.30,{e:2,s:.6},"Zia Yusuf"],["Red Wall Populists",.30,{e:.1,s:1.9},"Lee Anderson"]],
    region:{north:1.2,mid:1.15,lon:.7,south:1.0,scot:.5,wales:1.0},
    rival:"lab",blurb:"The insurgency won. Half your MPs have never read standing orders; the other half wrote new ones in crayon.",
    oppBlurb:"The wave that hasn't crested. Every government failure is your recruiting sergeant."},
  grn:{name:"Green",col:"#3a9c4f",aiOnly:true,ideal:{e:-1.5,s:-1.2},
    govSeats:329,oppSeats:32,unity:66,trust:44,app:47,
-   factions:[["Eco-Socialists",.40,{e:-2,s:-1.2},"Rosa Vane"],["Pragmatists",.35,{e:-.9,s:-.9},"Tom Ellery"],["Deep Greens",.25,{e:-1.6,s:-1.8},"Skye Aldous"]],
+   factions:[["Eco-Socialists",.40,{e:-2,s:-1.2},"Zack Polanski"],["Pragmatists",.35,{e:-.9,s:-.9},"Adrian Ramsay"],["Deep Greens",.25,{e:-1.6,s:-1.8},"Siân Berry"]],
    region:{north:.9,mid:.85,lon:1.3,south:1.1,scot:.9,wales:1.0},
    rival:"lab",blurb:"The flooded summer changed everything. You promised a different civilisation; the Treasury would settle for a solvent one.",
    oppBlurb:"Thirty-two seats, one planet. Turn weather into votes without becoming the people who shout at boilers."},
 
- res:{name:"Restore Britain",col:"#8e3b46",ideal:{e:1.1,s:2.3},aiOnly:true,
+ res:{name:"Restore Britain",col:"#8e3b46",ideal:{e:1.1,s:2.3},
    govSeats:328,oppSeats:8,unity:50,trust:45,app:42,
-   factions:[["The Faithful",.5,{e:.8,s:2.4},"—"],["The Old Guard",.5,{e:1.4,s:2.1},"—"]],
+   factions:[["The Faithful",.4,{e:.8,s:2.4},"Rev. Marcus Bell"],["The Old Guard",.3,{e:1.4,s:2.1},"Col. Edmund Hartwell-Price"],["The Broadcast Wing",.3,{e:1.2,s:1.9},"Verity Stone"]],
    region:{north:1.0,mid:1.1,lon:.5,south:1.05,scot:.4,wales:.95},
-   rival:"ref",blurb:null,oppBlurb:null},
+   rival:"ref",blurb:"Faith, flag and the 1950s, restored by Tuesday. Governing the present is going to come as a shock.",
+   oppBlurb:"Twelve seats, four million views a week, and a theory of Britain that fits on a church noticeboard. The algorithm loves you. Westminster is about to find out if the country does.",
+   govSeats:328,oppSeats:12},
  snp:{name:"SNP",col:"#e8d44d",aiOnly:true,ideal:{e:-.9,s:-.5},
    govSeats:0,oppSeats:48,unity:60,trust:50,app:46,
    factions:[["Fundamentalists",.35,{e:-.9,s:-.6},"Effie Brodie"],["Gradualists",.40,{e:-.8,s:-.4},"Alasdair Rennie"],["The New Guard",.25,{e:-1.1,s:-.7},"Zara Aziz"]],
@@ -231,6 +233,26 @@ const BILLS=[
   fx:{app:-1,unity:4,faction:{"The Left":10,"Eco-Socialists":8},trustM:-5},quip:"THE PICKET RETURNS"},
  {id:"frack",n:"Energy Sovereignty (Fracking) Act",ideo:{e:1.4,s:.8},cost:9,desc:"Drill, baby, in Lancashire.",
   fx:{svc:{energy:10},app:-3,faction:{"Deep Greens":-14,"The Activists":-9},media:3},quip:"THE GROUND SHAKES, ALLEGEDLY"},
+ {id:"smoking",n:"Smoke-Free Generation Act",ideo:{e:-.2,s:.4},cost:7,desc:"Nobody born after 2010 may ever legally buy cigarettes.",fx:{app:2,svc:{nhs:-.1}},quip:"THE LAST CIGARETTE"},
+ {id:"votes16",n:"Votes at Sixteen Act",ideo:{e:-.5,s:-1.1},cost:8,desc:"Two million new voters, most of whom are not yours… probably.",fx:{poll:.5,faction:{"The Activists":6,"Deep Greens":4,"National Right":-6}},quip:"SIXTEEN AND COUNTED"},
+ {id:"idcards",n:"Digital Identity Act",ideo:{e:.3,s:1.2},cost:10,desc:"One ID to rule them all. The civil-liberties lobby is already outside.",fx:{svc:{mig:-60,crime:-3},media:-3,faction:{"Social Liberals":-8,"The Activists":-7}},quip:"PAPERS, PLEASE (DIGITALLY)"},
+ {id:"lordselect",n:"Elected Senate Act",ideo:{e:-.4,s:-.7},cost:12,desc:"Eight hundred years of ermine versus one afternoon of democracy.",fx:{app:2,capital:-2,unity:-3},quip:"THE PEOPLE'S OTHER HOUSE"},
+ {id:"echr",n:"Withdrawal from the ECHR",ideo:{e:.8,s:2},cost:14,desc:"Leave the Strasbourg court. Allies wince; the base roars.",fx:{standing:-8,rel:{france:-8,germany:-8},poll:1,faction:{"One Nation":-10,"Social Liberals":-10,"The Faithful":8}},quip:"BRITAIN ALONE (LEGALLY)"},
+ {id:"netzero2035",n:"Net Zero Acceleration Act",ideo:{e:-1.1,s:-.6},cost:12,desc:"2035, binding, no offsets. Industry howls; the future applauds.",fx:{standing:6,svc:{energy:10},econ:{spendBump:.5},faction:{"Free Marketeers":-8,"The Old Guard":-8}},quip:"THE GREAT REWIRING"},
+ {id:"phones",n:"Phone-Free Schools Act",ideo:{e:0,s:.6},cost:5,desc:"The least controversial law in a decade. Teachers weep with joy.",fx:{app:3,svc:{schools:3}},quip:"BELL RINGS, PHONES OFF"},
+ {id:"socialage",n:"Social Media Minimum-Age Act",ideo:{e:0,s:.9},cost:8,desc:"Sixteen to scroll. Enforced badly, supported wildly.",fx:{app:3,media:-2},quip:"LOG OFF, KIDS"},
+ {id:"rentcap",n:"Rent Stabilisation Act",ideo:{e:-1.5,s:0},cost:10,desc:"Caps in the hot cities. Cheers from tenants; landlords list their MPs.",fx:{app:3,trustM:-6,svc:{housing:-15},faction:{"Free Marketeers":-7}},quip:"RENTS FROZEN, KNIVES OUT"},
+ {id:"rtb2",n:"Right to Own Act",ideo:{e:1,s:.3},cost:9,desc:"Discounted sales of housing-association stock. Popular, unfunded, familiar.",fx:{poll:1,econ:{spendBump:.3},svc:{housing:-8}},quip:"KEYS FOR VOTES"},
+ {id:"subs",n:"Continuous At-Sea Deterrent Act",ideo:{e:.4,s:.8},cost:8,desc:"Four new boats, guaranteed forever. The unmentionable, mentioned.",fx:{standing:5,econ:{spendBump:.4},rel:{usa:5},faction:{"Eco-Socialists":-8,"The Activists":-6}},quip:"THE SILENT SERVICE SAILS ON"},
+ {id:"decrim",n:"Drugs Reform Act",ideo:{e:-.6,s:-1.6},cost:11,desc:"Treatment over prison for possession. Portugal with worse weather.",fx:{svc:{crime:-5},media:-4,app:-1,faction:{"The Faithful":-9,"Red Wall Populists":-6}},quip:"THE QUIET REVOLUTION"},
+ {id:"gambling",n:"Gambling Harms Act",ideo:{e:-.5,s:.2},cost:6,desc:"Stake limits and a levy. Football shirts suddenly need new sponsors.",fx:{app:2,econ:{revBump:.1}},quip:"THE HOUSE LOSES"},
+ {id:"zerohours",n:"Secure Work Act",ideo:{e:-1.2,s:0},cost:9,desc:"Ban exploitative zero-hours contracts. The CBI faints theatrically.",fx:{app:2,trustM:-4,faction:{"The Left":7}},quip:"THE ROTA REVOLUTION"},
+ {id:"dentists",n:"NHS Dentistry Recovery Act",ideo:{e:-.7,s:0},cost:7,desc:"You can be the leader who brought back the NHS dentist. Imagine.",fx:{app:4,econ:{spendBump:.25},svc:{nhs:-.2}},quip:"THE TOOTH, AT LAST"},
+ {id:"meals",n:"Free School Meals For All Act",ideo:{e:-1.1,s:-.2},cost:8,desc:"Every primary child, every day. The footballer approves.",fx:{app:3,econ:{spendBump:.35},svc:{schools:2}},quip:"NO HUNGRY CLASSROOMS"},
+ {id:"tuition",n:"Tuition Abolition Act",ideo:{e:-1.6,s:-.4},cost:13,desc:"Scrap fees, eat the cost. Graduates cheer; the OBR writes in red ink.",fx:{poll:1.5,econ:{spendBump:.8},trustM:-6,faction:{"The Activists":8}},quip:"THE DEBT JUBILEE"},
+ {id:"points",n:"Skills-First Visa Act",ideo:{e:.4,s:.6},cost:8,desc:"Rebuild the points system around shortages. Technocratic, defensible.",fx:{svc:{mig:-50},econ:{g:.1}},quip:"THE NEW FRONT DOOR"},
+ {id:"prisonbuild",n:"Prison Capacity Act",ideo:{e:.3,s:1},cost:8,desc:"Twenty thousand places. Unsexy, necessary, photographs terribly.",fx:{svc:{crime:-2},econ:{spendBump:.3}},quip:"BRITAIN BUILDS CELLS, PROPERLY"},
+ {id:"devomax",n:"Devolution Maximum Act",ideo:{e:-.3,s:-.6},cost:10,desc:"Hand the nations everything short of embassies. The Union's last offer.",fx:{scot:-12,app:1,unity:-3},quip:"THE FAMILY RENEGOTIATED"},
  {id:"euvet",n:"EU Alignment (Veterinary) Act",ideo:{e:-.2,s:-.6},cost:7,desc:"Sausages without strings. The quiet reunion, course one.",
   fx:{rel:{germany:6,france:6},econ:{g:.15},faction:{"National Right":-8,"The Leader's Circle":-8}},quip:"PEACE IN OUR TIME (FOR SAUSAGES)"},
 ];
@@ -705,6 +727,77 @@ const OPP_DECK=[
 ];
 
 
+
+/* ---------- the interview room: quoted answers, real consequences ----------
+   opts: [quote, {effects}, risk(-/+ variance), ideo] ---------- */
+const QBANK=[
+ {k:"mig",q:"Net migration is %MIG%,000 a year. What number would you actually be happy with?",opts:[
+  ["“I'll give you a number when I'm confident we can hit it. I won't insult you with a dart at a board.”",{app:.5},0,{e:0,s:0}],
+  ["“Under one hundred thousand, within the parliament. Hold me to it.”",{poll:1.2,promise:"Migration under 100k"},1.6,{e:.3,s:1.4}],
+  ["“The number matters less than the system. Fast decisions, fair rules, no hotels.”",{app:1,media:1},0.4,{e:0,s:.3}],
+  ["“Honestly? Britain has needed every one of those workers.”",{poll:-.8,faction:{"Red Wall Populists":-5,"National Right":-5,"The Faithful":-5}},1.2,{e:-.3,s:-1.4}]]},
+ {k:"nhs",q:"Would you use private healthcare if your child needed an operation?",opts:[
+  ["“I'd do what any parent would do — and that's exactly why waiting lists are a moral emergency.”",{app:1.4},0.3,{e:0,s:0}],
+  ["“We use the NHS. Full stop. I believe in it with everything I have.”",{poll:.8,faction:{"The Left":4}},0.8,{e:-.8,s:-.2}],
+  ["“Yes — and I won't apologise for it. The sin isn't using private care, it's pretending the NHS doesn't need help.”",{media:2,poll:-.4},1.4,{e:.9,s:.2}],
+  ["“That's a private matter.”",{app:-.8,media:-1},0.5,{e:0,s:0}]]},
+ {k:"jobs",q:"Name the price of a pint of milk.",opts:[
+  ["“About 85p at the big supermarkets — and up forty per cent in three years, which is the actual scandal.”",{app:1.5,media:1.5},0.2,{e:0,s:0}],
+  ["“I do my own shopping, and I can tell you the whole basket's up, not just the milk.”",{app:.7},0.4,{e:0,s:0}],
+  ["“This is exactly the kind of gotcha that puts people off politics.”",{media:-1.5,app:-.7},0.8,{e:0,s:0}],
+  ["“…I'd have to check.”",{app:-1.8,media:-2},0.3,{e:0,s:0}]]},
+ {k:"crime",q:"A teenager is stabbed every week in our cities. Whose fault is that?",opts:[
+  ["“Mine, if I get power and don't fix it. Everyone else has had their turn at excuses.”",{app:1.2,poll:.5},0.7,{e:0,s:.2}],
+  ["“A decade of closed youth clubs and hollowed-out policing. You can't cut your way to safe streets.”",{poll:.6,faction:{"The Left":3,"The Activists":3}},0.5,{e:-.7,s:-.6}],
+  ["“The criminals. And we'll treat them like criminals — longer sentences, more stop and search, no apologies.”",{poll:.8,media:1,faction:{"Social Liberals":-4}},1.1,{e:.4,s:1.3}],
+  ["“It's complicated — there are many factors…”",{app:-1,media:-1.2},0.4,{e:0,s:0}]]},
+ {k:"war",cond:S=>S.world.war,q:"British soldiers are dying. Is it worth it?",opts:[
+  ["“Yes — and I'll look every family in the eye and explain why retreat would cost more lives, not fewer.”",{app:1,standing:2},1.2,{e:0,s:.5}],
+  ["“We owe them a strategy, not slogans. I want a defined end-state within months, not years.”",{app:.8},0.5,{e:0,s:0}],
+  ["“No war is 'worth it'. The question is whether it's necessary. This one is.”",{standing:1,app:.4},0.6,{e:0,s:.2}],
+  ["“We should bring them home now.”",{app:-.5,standing:-3,faction:{"The Activists":4,"Eco-Socialists":4}},1.3,{e:-.5,s:-.8}]]},
+ {k:"sleaze",q:"Why should anyone believe a word politicians say any more?",opts:[
+  ["“Don't believe words. Watch what I do, then judge me at the ballot box. That's the deal.”",{app:1.2},0.4,{e:0,s:0}],
+  ["“Because some of us got into this for the right reasons — and I'm bored of being embarrassed by the rest.”",{media:1.5,app:.6},0.8,{e:0,s:0}],
+  ["“Fair question. We've earned the cynicism. Now we have to earn it back, vote by vote.”",{app:.9},0.3,{e:0,s:0}],
+  ["“I think that's unfair to the vast majority of colleagues…”",{app:-1.2},0.4,{e:0,s:0}]]},
+ {k:"climate",q:"Heathrow third runway: yes or no?",opts:[
+  ["“No. You can't chain yourself to net zero on Monday and pour concrete on Friday.”",{faction:{"Deep Greens":5,"The Activists":4},poll:-.3},0.8,{e:-.6,s:-.4}],
+  ["“Yes — with the cleanest planes in the sky. Growth and green aren't enemies unless you want them to be.”",{poll:.6,trustM:2},0.8,{e:.6,s:.1}],
+  ["“I'll decide on the evidence when the consultation lands on my desk.”",{app:-.6,media:-.8},0.3,{e:0,s:0}],
+  ["“There are bigger questions than runways.”",{media:-.6},0.4,{e:0,s:0}]]},
+ {k:"eu",q:"Hand on heart — was Brexit a mistake?",opts:[
+  ["“The vote was the vote. My job is to make today work, and today needs a better deal with our neighbours.”",{app:.8,rel:{germany:2,france:2}},0.6,{e:-.2,s:-.4}],
+  ["“No. And the people who keep relitigating it are the reason politics feels stuck.”",{poll:.5,faction:{"National Right":4,"The Leader's Circle":4,"The Faithful":3}},0.9,{e:.3,s:.8}],
+  ["“Yes.”",{media:2.5,poll:-1,faction:{"Red Wall Populists":-6,"National Right":-6}},1.8,{e:-.4,s:-1}],
+  ["“I'm not going back into the trenches of 2016.”",{app:-.4},0.3,{e:0,s:0}]]},
+ {k:"tax",q:"Will you rule out raising taxes on working people? Yes or no.",opts:[
+  ["“I can rule out playing that game. You'll see every number, costed, before polling day.”",{trustM:2,app:.4},0.5,{e:0,s:0}],
+  ["“Yes. Ruled out. Read my lips.”",{poll:1,promise:"No tax rises on working people"},1.7,{e:.6,s:0}],
+  ["“Taxes on working people are too high — that's the direction I care about.”",{app:.5},0.5,{e:.4,s:0}],
+  ["“No responsible leader rules anything out.”",{app:-.9,media:-.8},0.5,{e:0,s:0}]]},
+ {k:"leader",q:"Your own MPs brief that you're %WEAK%. Why are you still the right person?",opts:[
+  ["“Because the people briefing you anonymously wouldn't last a week doing this job in daylight.”",{unity:-2,media:2,app:1},1.2,{e:0,s:0}],
+  ["“Leadership isn't a popularity contest in the tea room. It's results. Watch the results.”",{app:.8,unity:1},0.5,{e:0,s:0}],
+  ["“Families argue. Mine's no different. We'll be united when it counts.”",{unity:2},0.4,{e:0,s:0}],
+  ["“I haven't seen those reports.”",{media:-1.5,app:-.8},0.4,{e:0,s:0}]]},
+ {k:"housing",q:"You're asking young people to vote for you. Most of them can't afford a home. What's your offer?",opts:[
+  ["“One and a half million homes, and I'll take the planning fights personally. NIMBYs included. Mine included.”",{poll:.9,promise:"1.5m homes"},1.0,{e:.2,s:-.5}],
+  ["“An honest one: it took thirty years to break, it won't be fixed in one parliament — but the cranes go up in year one.”",{app:1,trustM:1},0.4,{e:0,s:0}],
+  ["“Help to own: deposits matched by the state, paid back when you sell.”",{poll:.6},0.7,{e:.4,s:0}],
+  ["“Plenty of young people have done it with hard work and sacrifice.”",{poll:-1.4,media:-1},1.0,{e:.6,s:.8}]]},
+ {k:"personal",q:"What's the biggest mistake you've made in this job?",opts:[
+  ["“Being slow to sack people I liked. Loyalty's a virtue until it's a weakness — I learned that the hard way.”",{app:1.2,media:1},0.6,{e:0,s:0}],
+  ["“Trying to please everyone in my first hundred days. You end up pleasing no one. Never again.”",{app:.9},0.4,{e:0,s:0}],
+  ["“I don't do regret. Next question.”",{media:.8,app:-.6},1.0,{e:0,s:.3}],
+  ["“Nothing comes to mind, honestly.”",{app:-1.5,media:-1.5},0.4,{e:0,s:0}]]},
+];
+const INTERVIEW_FORMATS={
+ sofa:{name:"The breakfast sofa",n:5,reach:1.0,risk:0.7,cost:4,desc:"Warm lighting, light questions, one ambush hidden in the cushions."},
+ night:{name:"The eight-o'clock grilling",n:8,reach:1.7,risk:1.4,cost:7,desc:"The forensic prime-time interviewer. Huge audience, no mercy."},
+ radio:{name:"Radio phone-in",n:6,reach:1.2,risk:1.0,cost:5,desc:"Real voters, live, unscreened. Anything can happen and usually does."},
+};
+
 /* ---------- the talent: real figures per party (neutral stats; they drift) ---------- */
 const REAL_POLS={
  lab:[["Rachel Reeves",38,78,62,48,"Chancellor"],["Wes Streeting",42,74,55,68,"Health Sec."],["Angela Rayner",46,62,58,72,"Home Sec."],["Yvette Cooper",41,76,70,46,"Home Sec."],["Ed Miliband",40,66,72,55,"Energy Sec."],["John Healey",39,71,78,40,"Defence Sec."],["Bridget Phillipson",36,65,68,45,"Education Sec."],["Shabana Mahmood",37,70,60,50,"Home Sec."],["Pat McFadden",33,75,80,32,"Chief Whip"],["Liz Kendall",30,60,62,38,"Education Sec."],["Lisa Nandy",35,58,55,52,"Foreign Sec."],["Darren Jones",34,68,64,46,"Chancellor"]],
@@ -712,7 +805,10 @@ const REAL_POLS={
  lib:[["Ed Davey",44,64,75,58,"Foreign Sec."],["Daisy Cooper",40,66,72,52,"Chancellor"],["Layla Moran",41,62,60,58,"Foreign Sec."],["Munira Wilson",36,63,66,44,"Health Sec."],["Sarah Olney",35,67,68,40,"Chancellor"],["Tim Farron",39,58,60,56,"Education Sec."],["Wendy Chamberlain",34,62,70,40,"Chief Whip"],["Helen Morgan",33,60,66,38,"Defence Sec."],["Christine Jardine",34,59,64,42,"Home Sec."],["Max Wilkinson",31,57,62,40,"Energy Sec."]],
  ref:[["Nigel Farage",47,58,35,82,"Foreign Sec."],["Richard Tice",36,56,55,50,"Chancellor"],["Zia Yusuf",35,68,52,48,"Chancellor"],["Lee Anderson",33,40,50,58,"Home Sec."],["Sarah Pochin",30,52,58,40,"Education Sec."],["Danny Kruger",34,64,48,46,"Health Sec."],["David Bull",32,50,60,52,"Health Sec."],["James McMurdock",27,45,55,34,"Chief Whip"],["Ann Widdecombe",35,55,62,54,"Home Sec."],["Tim Montgomerie",30,58,50,38,"Energy Sec."]],
  grn:[["Zack Polanski",38,58,55,66,"Energy Sec."],["Carla Denyer",37,64,68,50,"Energy Sec."],["Adrian Ramsay",34,62,72,38,"Chancellor"],["Siân Berry",36,60,66,46,"Home Sec."],["Ellie Chowns",33,63,68,40,"Foreign Sec."],["Caroline Lucas",46,70,74,58,"Foreign Sec."],["Mothin Ali",30,50,52,48,"Education Sec."],["Larry Sanders",28,48,60,36,"Health Sec."],["Jenny Jones",33,55,66,40,"Home Sec."],["Amelia Womack",30,54,60,44,"Education Sec."]],
+ res:[["Verity Stone",39,55,40,70,"Foreign Sec."],["Col. Edmund Hartwell-Price",36,60,70,48,"Defence Sec."],["Rev. Marcus Bell",37,58,66,56,"Education Sec."],["Dr. Cassandra Vane",33,68,52,44,"Health Sec."],["Bill Tanner",32,50,64,46,"Home Sec."],["Lady Arabella Frost",34,62,58,50,"Chancellor"],["Jack Strood",29,44,56,52,"Chief Whip"],["Peggy O'Mara",31,54,68,42,"Energy Sec."],["Hugh Considine",30,57,60,38,"Chancellor"],["Tessa Wraith",28,52,62,40,"Energy Sec."]],
 };
+
+const REAL_LEADERS={lab:"Keir Starmer",con:"Kemi Badenoch",lib:"Ed Davey",ref:"Nigel Farage",grn:"Zack Polanski",res:"Verity Stone",snp:"John Swinney"};
 
 /* ---------- TV debate scripts: rival answers by ideological flavour ---------- */
 const DEBATE_LINES={
@@ -723,6 +819,57 @@ const DEBATE_LINES={
  jobs:{left:"A green industrial strategy and a real living wage — invest, don't liquidate.",right:"Cut the red tape, cut the taxes, and let business breathe again.",centre:"Skills, infrastructure, and planning reform — the boring trinity that works."},
  sleaze:{left:"Clean the lot out: ban second jobs, end the honours bazaar.",right:"Individual failings, swiftly punished — not an excuse to smear everyone.",centre:"An independent ethics commissioner with teeth, appointed tomorrow."},
  war:{left:"De-escalate, talk, and never again write blank cheques in other people's blood.",right:"Strength is the only language they understand — rearm and stand firm.",centre:"Hold the line with allies, fund the forces, keep the channel open."},
+};
+
+
+
+/* ---------- the scenario forge: 6 x 7 x 5 x 4 x 8 = 6,720 setups ---------- */
+const GEN_ECON=[
+ ["a roaring boom",S=>{S.econ.g=3.1;S.econ.trust=70;S.econ.infl=2.4}],
+ ["a steady economy",S=>{}],
+ ["the long stagnation",S=>{S.econ.g=0.3;S.econ.invest=-0.5}],
+ ["a biting recession",S=>{S.econ.g=-1.4;S.econ.unemp=6.1;S.pols.approval-=4}],
+ ["an inflation crisis",S=>{S.econ.infl=8.8;S.econ.rates=6.0;S.svc.nhsWait+=0.5}],
+ ["a gilt-market revolt",S=>{S.econ.trust=27;S.econ.debt=115;S.econ.rates=6.5}]];
+const GEN_POL=[
+ ["a fresh majority","government",S=>{}],
+ ["a thumping landslide","government",S=>{S.party.seats=415;S.flags.expectations=true}],
+ ["a hung parliament","government",S=>{S.party.seats=316;S.flags.minority=true}],
+ ["a divided party","government",S=>{S.party.factions.forEach(f=>f.happy-=14)}],
+ ["the deep wilderness","opposition",S=>{S.party.seats=Math.max(8,Math.round(S.party.seats*0.6))}],
+ ["a rebuilt opposition","opposition",S=>{S.pols.pollMe+=3}],
+ ["a knife-edge opposition","opposition",S=>{if(S.opp){S.opp.gov.approval=36;S.opp.electionDue=Math.min(S.opp.electionDue,16)}}]];
+const GEN_WORLD=[
+ ["calm seas",S=>{}],
+ ["a cold wind from Moscow",S=>{S.world.regions.russia.rel=-85;S.flags.baltic2soon=true}],
+ ["a brewing trade war",S=>{S.world.regions.usa.rel=30;S.world.regions.china.rel=-20;S.flags.tradeDrag=true}],
+ ["an alliance golden age",S=>{S.world.regions.usa.rel=70;S.world.regions.germany.rel=60;S.world.standing+=8}],
+ ["a powder-keg Gulf",S=>{S.world.regions.mideast.rel=-10;S.econ.energy=1.2}]];
+const GEN_PRESS=[
+ ["a friendly press",S=>{S.media.outlets.forEach(o=>o.stance+=10)}],
+ ["a hostile press",S=>{S.media.outlets.forEach(o=>o.stance-=12)}],
+ ["a press at war with itself",S=>{S.media.outlets.forEach((o,i)=>o.stance+=(i%2?14:-14))}],
+ ["a hacking scandal brewing",S=>{S.pols.sleaze+=12}]];
+const GEN_WILD=[
+ ["",S=>{}],
+ ["Scotland surging",S=>{S.world.scot=58}],
+ ["a flu strain in the headlines",S=>{S.flags.fluSoon=true}],
+ ["an AI investment rush",S=>{S.econ.invest+=0.6}],
+ ["an energy shock",S=>{S.econ.energy=1.5}],
+ ["a donor scandal waiting",S=>{S.pols.sleaze+=8;S.flags.donorBomb=true}],
+ ["a by-election curse",S=>{S.flags.byCurse=true}],
+ ["a restless monarchy moment",S=>{S.flags.royalMoment=true}]];
+
+/* ---------- manifesto issues: eight axes, public opinion drifts ---------- */
+const ISSUES={
+ mig:{n:"Immigration",lo:"Open & humane",hi:"Hard caps & removals",pub:0.6},
+ crime:{n:"Law & order",lo:"Rehabilitation first",hi:"Tough sentencing",pub:0.5},
+ climate:{n:"Climate",lo:"Net zero faster",hi:"Slow down, cut bills",pub:-0.2},
+ eu:{n:"Europe",lo:"Closer to the EU",hi:"Keep our distance",pub:-0.1},
+ culture:{n:"Culture & identity",lo:"Progressive Britain",hi:"Traditional Britain",pub:0.2},
+ nhs:{n:"The NHS",lo:"Public, fully funded",hi:"Reform with private help",pub:-0.6},
+ housing:{n:"Housing",lo:"Build everywhere",hi:"Protect communities",pub:-0.3},
+ defence:{n:"Defence",lo:"Diplomacy first",hi:"Rearm hard",pub:0.4},
 };
 
 /* ---------- electoral geography ---------- */

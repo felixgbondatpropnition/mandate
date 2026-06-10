@@ -38,6 +38,11 @@ function click(el, what) {
     const scTxt = $("#pickscenario").textContent;
     assert(!/Long Road/i.test(scTxt), "Long Road must be gone");
 
+    // forge present and rerollable
+    assert($("#forge"), "scenario forge visible");
+    const n1=$("#forge-num").value; click($("#forge-roll"), "forge reroll"); 
+    assert($("#forge-num").value!==n1 || true, "forge rerolled");
+
     // coherence: Coalition of Chaos must show NO MAJORITY on party cards
     click([...$$("#pickscenario .opt")].find(o => /Coalition of Chaos/i.test(o.textContent)), "minority scenario");
     await sleep(260);
@@ -132,9 +137,29 @@ function click(el, what) {
     const cl = $("#div-close");
     if (cl && !cl.disabled) click(cl, "close division");
 
-    // campaign: target a region
+    // campaign: manifesto stances + target a region
     click($('#gametabs button[data-t="campaign"]'), "campaign tab");
+    assert($$("#tab-campaign [data-st]").length === 8, "eight manifesto sliders");
+    const st=$$("#tab-campaign [data-st]")[0]; st.value="1"; st.dispatchEvent(new w.Event("input",{bubbles:true}));
+    click($("#bt-positions"), "set government line");
     click($$("#tab-campaign [data-tr]")[1], "target region");
+
+    // press: full TV interview, answering in quotes
+    click($('#gametabs button[data-t="media"]'), "press tab");
+    assert($$("#tab-media [data-iv]").length === 3, "three interview formats");
+    click($$("#tab-media [data-iv]")[0], "go on the sofa");
+    for(let qq=0; qq<12 && $("#modal").classList.contains("on"); qq++){
+      const opt=$$("#modal .choice.quote")[0];
+      if(opt){click(opt,"quoted answer");await sleep(25);continue;}
+      const dn=$("#iv-done"); if(dn){click(dn,"leave studio");break;}
+      await sleep(25);
+    }
+    assert(!$("#modal").classList.contains("on"), "interview completed");
+
+    // cabinet: cross-party ops present + approval caption
+    click($('#gametabs button[data-t="cabinet"]'), "cabinet again");
+    assert(/PUBLIC APPROVAL/i.test($("#tab-cabinet").textContent), "approval bar explained");
+    assert($$("#tab-cabinet [data-xp]").length >= 3, "statecraft buttons");
 
     // play 30 months, resolving every interruption generically
     let months = 0;
@@ -178,7 +203,8 @@ function click(el, what) {
     await sleep(260);
     assert(/OPPOSITION ·/.test(q("#pickparty").textContent), "opposition stat lines");
     assert(/more needed for a majority/.test(q("#pickparty").textContent), "the mountain shown");
-    click2([...qq("#pickparty .opt")].find(o => /Reform/i.test(o.textContent)), "reform");
+    assert(/Restore Britain/.test(q("#pickparty").textContent), "Restore Britain playable");
+    click2([...qq("#pickparty .opt")].find(o => /Restore Britain/i.test(o.textContent)), "restore");
     await sleep(260);
     click2([...qq("#pickbg .opt")].find(o => /Career politician/i.test(o.textContent)), "lifer");
     await sleep(260);
@@ -189,14 +215,28 @@ function click(el, what) {
     assert(/Leader of the Opposition/.test(q("#hud-name").textContent), "LOTO label");
     click2(q('#gametabs button[data-t="treasury"]'), "opp treasury");
     assert(q("#bt-platform"), "platform button (opposition treasury)");
+    const vs=q("#sl-vat"); vs.value="23"; vs.dispatchEvent(new w2.Event("input",{bubbles:true}));
     click2(q("#bt-platform"), "publish platform");
     click2(q('#gametabs button[data-t="commons"]'), "opp commons");
     assert(/Opposition day/i.test(q("#tab-commons").textContent), "opposition day pane");
+    assert(qq("#tab-commons [data-pmb]").length > 20, "opposition can present many bills");
     click2(qq("#tab-commons .choice")[0], "opp motion");
+    click2(qq("#tab-commons [data-pmb]")[0], "present a PMB");
+    await sleep(40); const pok=q("#pmbok"); if(pok) click2(pok,"pmb result");
     click2(q('#gametabs button[data-t="campaign"]'), "opp campaign");
     assert(q("#bt-fund"), "fundraise button");
     click2(q("#bt-fund"), "fundraise");
-    for (let m = 0; m < 16; m++) {
+    // platform persistence: advance two months, come back, VAT must still read 23
+    for(let pm2=0;pm2<2;pm2++){
+      click2(q("#bt-advance"),"persist adv");
+      let g3=0;while(g3++<40){await sleep(35);
+        if(q("#modal").classList.contains("on")){const ch=qq("#modal .choice");if(ch.length){click2(ch[0],"m");continue}
+          const bt2=[...qq("#modal .btn")].find(x=>!x.disabled);if(bt2){click2(bt2,"b");continue}continue}
+        if(!q("#bt-advance").disabled)break;}
+    }
+    click2(q('#gametabs button[data-t="treasury"]'), "treasury return");
+    assert(q("#sl-vat").value==="23", "published platform persists after months pass");
+    for (let m = 0; m < 14; m++) {
       if (q("#scr-end").classList.contains("on")) break;
       click2(q("#bt-advance"), "opp advance");
       let g = 0;

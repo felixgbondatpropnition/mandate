@@ -354,3 +354,26 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
 .connector{stroke:var(--hair2);stroke-width:1;stroke-dasharray:4 3}
 .land{stroke-width:.4}
 .rlabel{paint-order:stroke;stroke:rgba(9,18,35,.85);stroke-width:2.4px}
+
+/* ===== v6: forge, studio, manifesto, statecraft ===== */
+.forge{margin-top:12px}
+.forgecard{border-style:dashed;border-color:var(--hair2)}
+.forgecard h4{color:var(--gold)}
+.forgenum{width:74px;background:var(--well);border:1px solid var(--hair2);color:var(--ink);padding:8px;text-align:center;font-size:12px}
+.onair{display:inline-block;font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.22em;color:#fff;
+  background:var(--red);padding:5px 12px;margin-bottom:10px;clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,7px 100%,0 calc(100% - 7px))}
+.ivq{font-style:italic;font-weight:500}
+.choice.quote{font-style:italic;font-size:15px;line-height:1.55}
+.perfbar{height:6px;background:rgba(233,236,242,.08);margin-top:14px}
+.perfbar div{height:100%;background:linear-gradient(90deg,var(--red),var(--gold),var(--grn));transition:width .4s ease}
+.fmtgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.qsearch{width:100%;max-width:420px;background:var(--well);border:1px solid var(--hair2);color:var(--ink);
+  font-family:var(--mono);font-size:12px;padding:10px 12px;margin:10px 0 4px}
+.qsearch:focus{outline:none;border-color:var(--party)}
+.stancerow{margin:13px 0}
+.stancewrap{position:relative;padding-top:10px}
+.pubmark{position:absolute;top:-4px;transform:translateX(-50%);color:var(--gold);font-size:10px}
+.stancelbls{display:flex;justify-content:space-between;font-family:var(--sans);font-size:9px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mut);margin-top:2px}
+.minister .track{min-height:8px}
+.minister .fill{min-width:4%}

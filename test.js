@@ -5,7 +5,7 @@ const src=fs.readFileSync(__dirname+"/data.js","utf8")+"\n"+fs.readFileSync(__di
 const ctx={console,Math,Date,JSON};ctx.globalThis=ctx;ctx.module=undefined;
 vm.createContext(ctx);vm.runInContext(src,ctx);
 const E=ctx.__MANDATE__;
-const D=vm.runInContext("({BGS,SCENARIOS,DIFFS,BILLS,REGIONS,FISCAL_META})",ctx);
+const D=vm.runInContext("({BGS,SCENARIOS,DIFFS,BILLS,REGIONS,FISCAL_META,ISSUES})",ctx);
 if(!E){console.error("no engine export");process.exit(1)}
 
 const fin=(x,p)=>{if(typeof x==="number"&&!Number.isFinite(x))throw new Error("NaN at "+p)};
@@ -26,10 +26,16 @@ const legacies=[];let errors=0,runs=0;
 const parties=["lab","con","lib","ref","grn"],bgs=Object.keys(D.BGS),scens=Object.keys(D.SCENARIOS),diffs=Object.keys(D.DIFFS);
 
 const MATRIX=[];
-for(let i=0;i<140;i++){
+const PL=["lab","con","lib","ref","res"];
+for(let i=0;i<120;i++){
   let sc=scens[i%scens.length];
-  let party=parties[i%parties.length];
-  MATRIX.push({party,bg:bgs[i%bgs.length],scenario:sc,difficulty:diffs[i%diffs.length],seed:"fleet-"+i,name:"Bot "+i});
+  MATRIX.push({party:PL[i%PL.length],bg:bgs[i%bgs.length],scenario:sc,difficulty:diffs[i%diffs.length],seed:"fleet-"+i,name:"Bot "+i});
+}
+// 30 forged scenarios across the 6,720 space
+for(let i=0;i<30;i++){
+  const n=(i*223+7)%6720;
+  const gen={e:n%6,p:Math.floor(n/6)%7,w:Math.floor(n/42)%5,pr:Math.floor(n/210)%4,wi:Math.floor(n/840)%8,n,name:"Forge#"+n};
+  MATRIX.push({party:PL[i%PL.length],bg:bgs[i%bgs.length],scenario:"gen",gen,difficulty:diffs[i%diffs.length],seed:"forge-"+n,name:"ForgeBot "+n});
 }
 
 for(const cfg of MATRIX){
@@ -68,6 +74,23 @@ for(const cfg of MATRIX){
         counts.invasions=(counts.invasions||0)+1}
       if(S.meta.phase==="government"&&R()<0.05&&(S.bench||[]).length&&S.pols.capital>20){
         E.swapMinister(S,Math.floor(R()*S.cabinet.length),Math.floor(R()*S.bench.length));counts.swaps=(counts.swaps||0)+1}
+      if(R()<0.06&&S.pols.capital>30){
+        const fmts=["sofa","night","radio"];const fk=fmts[Math.floor(R()*3)];
+        const iv=E.interviewBuild(S,fk);let sc2=0;
+        iv.qs.forEach(q=>{sc2+=E.interviewAnswer(S,q.opts[Math.floor(R()*q.opts.length)],1)});
+        E.interviewFinish(S,fk,sc2,iv.qs.length);counts.interviews=(counts.interviews||0)+1}
+      if(S.meta.phase==="opposition"&&R()<0.05&&S.pols.capital>20){
+        const av=D.BILLS.filter(b=>!S.usedBills.includes(b.id));
+        if(av.length){E.enactOppBill(S,av[Math.floor(R()*av.length)].id);counts.pmbs=(counts.pmbs||0)+1}}
+      if(R()<0.05&&S.pols.capital>25){
+        const oth=Object.keys(D.REGIONS?{}:{}).length?[]:["lab","con","lib","ref","grn","res"].filter(k=>k!==S.meta.party);
+        const k=oth[Math.floor(R()*oth.length)];
+        const op=R();
+        if(op<0.4)E.partySummit(S,k);else if(op<0.7)E.poachMP(S,k);
+        else if(op<0.9&&S.meta.phase==="opposition")E.proposePact(S,k);
+        else E.proposeMerger(S,k);
+        counts.statecraft=(counts.statecraft||0)+1}
+      if(R()<0.05){const ks=Object.keys(D.ISSUES||{});if(ks.length)E.setStance(S,ks[Math.floor(R()*ks.length)],Math.round((R()*4-2)*2)/2)}
       if(S.meta.phase==="government"&&R()<0.07&&S.pols.capital>10){
         const f=Object.assign({},S.fiscal);f.basic=Math.round(D.FISCAL_META.basic.min+R()*(D.FISCAL_META.basic.max-D.FISCAL_META.basic.min));
         f.nhs=+(D.FISCAL_META.nhs.min+R()*(D.FISCAL_META.nhs.max-D.FISCAL_META.nhs.min)).toFixed(1);
@@ -109,7 +132,7 @@ for(const cfg of MATRIX){
     endings[endKind]=(endings[endKind]||0)+1;
     const sc=E.legacy(S);fin(sc,"legacy");if(sc<0||sc>100)throw new Error("legacy "+sc);
     legacies.push(sc);runs++;
-  }catch(e){errors++;console.error("RUN "+cfg.seed+" ("+cfg.party+"/"+cfg.scenario+"/"+cfg.difficulty+") FAILED:",e.message);
+  }catch(e){errors++;console.error("RUN "+cfg.seed+" FAILED:",e.stack.split(String.fromCharCode(10)).slice(0,4).join(" | "));
     if(errors>5)break}
 }
 legacies.sort((a,b)=>a-b);

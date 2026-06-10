@@ -42,6 +42,7 @@ const WIZ=[["The scenario","Where does your story begin?"],
 function startWizard(){cfg={scenario:null,difficulty:null,party:null,bg:null,seed:null};wizStep=0;show("#scr-setup");renderWiz()}
 function partyStatLine(sc,p){
   const mj=p.govSeats*2-650;
+  if(sc==="gen"&&cfg.gen)return (GEN_POL[cfg.gen.p][1]==="government"?"IN POWER · ":"OPPOSITION · ")+GEN_ECON[cfg.gen.e][0]+" · "+GEN_POL[cfg.gen.p][0];
   switch(sc){
     case"fresh":return"IN POWER · majority "+mj+" · unity "+p.unity;
     case"landslide":return"IN POWER · landslide majority 180 · expectations: brutal";
@@ -52,6 +53,33 @@ function partyStatLine(sc,p){
     default:return"OPPOSITION · "+p.oppSeats+" seats · "+(326-p.oppSeats)+" more needed for a majority";
   }
 }
+
+/* ---------- the scenario forge: 6,720 generated setups ---------- */
+let forgeSeed=Math.floor(Math.random()*6720);
+function forgeFrom(n){
+  n=((n%6720)+6720)%6720;
+  const e=n%6;const p=Math.floor(n/6)%7;const w=Math.floor(n/42)%5;const pr=Math.floor(n/210)%4;const wi=Math.floor(n/840)%8;
+  const name="Scenario #"+String(n).padStart(4,"0")+" — "+GEN_ECON[e][0]+", "+GEN_POL[p][0];
+  return{e,p,w,pr,wi,n,name};
+}
+function renderForge(){
+  const g=forgeFrom(forgeSeed);
+  const bits=[GEN_ECON[g.e][0],GEN_POL[g.p][0],GEN_WORLD[g.w][0],GEN_PRESS[g.pr][0],GEN_WILD[g.wi][0]].filter(Boolean);
+  $("#forge").innerHTML=`<div class="opt forgecard ${cfg.scenario==="gen"&&cfg.gen&&cfg.gen.n===g.n?"sel":""}">
+    <h4>⚒ THE SCENARIO FORGE <span class="dim small">· one of 6,720</span></h4>
+    <p><b class="num">#${String(g.n).padStart(4,"0")}</b> — ${bits.join(" · ")}</p>
+    <div class="stats">START: ${GEN_POL[g.p][1]==="government"?"IN POWER":"OPPOSITION"}</div>
+    <div class="menu tight"><button class="btn small" id="forge-play">Play this one</button>
+     <button class="btn ghost small" id="forge-roll">⟳ Forge another</button>
+     <input class="forgenum num" id="forge-num" value="${g.n}" maxlength="4"></div></div>`;
+  $("#forge-roll").onclick=e2=>{e2.stopPropagation();forgeSeed=Math.floor(Math.random()*6720);renderForge()};
+  $("#forge-num").onclick=e2=>e2.stopPropagation();
+  $("#forge-num").onchange=e2=>{forgeSeed=parseInt(e2.target.value||"0",10)||0;renderForge()};
+  $("#forge-play").onclick=e2=>{e2.stopPropagation();
+    const gg=forgeFrom(forgeSeed);cfg.scenario="gen";cfg.gen=gg;cfg.party=null;
+    wizStep=1;renderWiz()};
+}
+
 function renderWiz(){
   $("#wizcrumb").textContent="New career · step "+(wizStep+1)+" of "+WIZ.length;
   $("#wiztitle").textContent=WIZ[wizStep][0];
@@ -60,11 +88,14 @@ function renderWiz(){
   const B=$("#wizbody");
   const pickAndGo=set=>e=>{set();e.currentTarget.classList.add("sel");setTimeout(()=>{wizStep++;renderWiz()},170)};
   if(wizStep===0){
-    B.innerHTML=`<div class="pick" id="pickscenario"></div>`;const sc=$("#pickscenario");
+    B.innerHTML=`<div class="pick" id="pickscenario"></div>
+     <div class="forge" id="forge"></div>`;
+    const sc=$("#pickscenario");
     for(const[k,s]of Object.entries(SCENARIOS)){
       const d=document.createElement("div");d.className="opt"+(cfg.scenario===k?" sel":"");
       d.innerHTML=`<h4>${s.name}</h4><p>${s.desc}</p><div class="stats">${s.phase==="government"?"START: IN POWER":"START: OPPOSITION"}</div>`;
       d.onclick=pickAndGo(()=>{if(cfg.scenario!==k)cfg.party=null;cfg.scenario=k});sc.appendChild(d);}
+    renderForge();
   }else if(wizStep===1){
     B.innerHTML=`<div class="pick" id="pickdiff"></div>`;const df=$("#pickdiff");
     for(const[k,x]of Object.entries(DIFFS)){
@@ -73,7 +104,7 @@ function renderWiz(){
       d.onclick=pickAndGo(()=>cfg.difficulty=k);df.appendChild(d);}
   }else if(wizStep===2){
     B.innerHTML=`<div class="pick" id="pickparty"></div>`;const pp=$("#pickparty");
-    const isOpp=SCENARIOS[cfg.scenario].phase==="opposition";
+    const isOpp=cfg.scenario==="gen"?GEN_POL[cfg.gen.p][1]==="opposition":SCENARIOS[cfg.scenario].phase==="opposition";
     for(const[k,p]of Object.entries(PARTIES)){
       if(p.aiOnly)continue;
       const d=document.createElement("div");d.className="opt"+(cfg.party===k?" sel":"");
@@ -88,7 +119,7 @@ function renderWiz(){
       d.innerHTML=`<h4>${b.name}</h4><p>${b.blurb}</p><div class="stats">${b.stats}</div>`;
       d.onclick=pickAndGo(()=>cfg.bg=k);pb.appendChild(d);}
   }else{
-    const s=SCENARIOS[cfg.scenario],p=PARTIES[cfg.party],b=BGS[cfg.bg];
+    const s=cfg.scenario==="gen"?{name:cfg.gen.name}:SCENARIOS[cfg.scenario],p=PARTIES[cfg.party],b=BGS[cfg.bg];
     B.innerHTML=`<div class="field"><div class="lbl" style="margin-bottom:8px">Your name</div>
       <input type="text" id="pmname" maxlength="28" placeholder="e.g. Alex Sterling"></div>
       <div class="panelbox" style="max-width:580px"><h4>Your setup</h4><div class="cab">
@@ -342,7 +373,7 @@ function paperHTML(){const pp=S.paper;
 let staged=null;
 function renderTreasury(){
   const gov=S.meta.phase==="government";
-  staged=staged||Object.assign({},S.fiscal);
+  staged=staged||Object.assign({},(S.meta.phase==="opposition"&&S.platform)?S.platform:S.fiscal);
   const grp=(g,title)=>`<div class="fisgroup"><h4>${title}</h4>${Object.entries(FISCAL_META).filter(([k,m])=>m.grp===g).map(([k,m])=>{
     if(m.toggle)return`<div class="sl"><label>${m.n}<span class="num">${staged[k]?"ON":"OFF"}</span></label>
       <input type="range" id="sl-${k}" min="0" max="1" step="1" value="${staged[k]}" data-f="${k}"></div>`;
@@ -388,9 +419,24 @@ function fiscalBar(){
 /* ---------- PARLIAMENT ---------- */
 function renderParliament(){
   const gov=S.meta.phase==="government";
-  if(!gov){$("#tab-commons").innerHTML=`<div class="panelbox"><h4>Opposition day</h4>
+  if(!gov){
+    const avail=BILLS.filter(b=>!S.usedBills.includes(b.id));
+    $("#tab-commons").innerHTML=`<div class="panelbox"><h4>Opposition day</h4>
     <p class="body">You control the order paper once a month. Pick the wound to press.</p>
-    <div class="opts">${E.pmqsTopics(S).map(t=>`<button class="choice" data-k="${t.k}">Motion on ${t.label}<small>Force government MPs to defend the indefensible on the record</small></button>`).join("")}</div></div>`;
+    <div class="opts">${E.pmqsTopics(S).map(t=>`<button class="choice" data-k="${t.k}">Motion on ${t.label}<small>Force government MPs to defend the indefensible on the record</small></button>`).join("")}</div></div>
+    <div class="panelbox"><h4>PRESENT A BILL — they will probably kill it, and pay for doing so</h4>
+     <input class="qsearch" id="pmbsearch" placeholder="search ${avail.length} bills…">
+     <div class="billgrid" id="pmbgrid">${avail.map(b=>`<div class="bill" data-name="${b.n.toLowerCase()}"><h4>${b.n}</h4><p>${b.desc}</p>
+      <div class="menu tight"><button class="btn small" data-pmb="${b.id}">Present it · 6 capital</button></div></div>`).join("")}</div></div>`;
+    $("#pmbsearch").oninput=e2=>{const v=e2.target.value.toLowerCase();
+      $$("#pmbgrid .bill").forEach(x=>x.style.display=x.dataset.name.includes(v)?"":"none")};
+    $$("#tab-commons [data-pmb]").forEach(b=>b.onclick=()=>{
+      const b4=snapStats();const r=E.enactOppBill(S,b.dataset.pmb);
+      if(!r.ok){toast(r.msg||"Cannot.");return}
+      modal(`<div class="lbl gold">The division</div><h3>${r.pass?"IT PASSES — "+r.ayes+" votes":"Voted down, "+r.ayes+"–"+r.noes}</h3>
+       <div class="body">${r.pass?"An opposition writing the law of the land. The government benches sit in stunned silence.":"Every government MP is now on record against it. You will be quoting this division for years."}</div>
+       <div class="menu"><button class="btn" id="pmbok">Onward</button></div>`,true);
+      $("#pmbok").onclick=()=>{closeModal();toastDiff(b4);renderAll();save()}});
     $$("#tab-commons .choice").forEach(b=>b.onclick=()=>{
       if(S.flags["oday"+S.meta.month]){toast("You've used this month's opposition day.");return}
       S.flags["oday"+S.meta.month]=true;E.applyEffects(S,{gov:{app:-1.2},poll:.4,capital:-2});
@@ -398,7 +444,8 @@ function renderParliament(){
       toast("<b>MOTION</b> · pressure applied");renderAll();save()});
     return}
   const avail=BILLS.filter(b=>!S.usedBills.includes(b.id));
-  $("#tab-commons").innerHTML=`<div class="lbl">The legislative machine · majority ${S.majority} ${S.flags.minority?"· MINORITY":""}</div>
+  $("#tab-commons").innerHTML=`<div class="lbl">The legislative machine · majority ${S.majority} ${S.flags.minority?"· MINORITY":""}${S.flags.coalitionWith?" · COALITION: "+S.flags.coalitionWith:""}</div>
+   <input class="qsearch" id="billsearch" placeholder="search ${avail.length} bills…">
    <div class="billgrid">${avail.map(b=>{
      const d=E.computeDivision(S,b,false);
      return`<div class="bill"><h4>${b.n}</h4><p>${b.desc}</p>
@@ -407,6 +454,8 @@ function renderParliament(){
       <div class="menu tight"><button class="btn small" data-b="${b.id}" data-w="0">Put to the House</button>
       <button class="btn ghost small" data-b="${b.id}" data-w="1">Whip hard (+8 cap)</button></div></div>`}).join("")}</div>
    ${S.usedBills.length?`<div class="lbl" style="margin-top:18px">On the statute book</div><div class="dim small">${S.usedBills.map(id=>BILLS.find(b=>b.id===id).n).join(" · ")}</div>`:""}`;
+  const bs=$("#billsearch");if(bs)bs.oninput=e2=>{const v=e2.target.value.toLowerCase();
+    $$("#tab-commons .bill").forEach(x=>{const nm=(x.querySelector("h4")||{}).textContent||"";x.style.display=nm.toLowerCase().includes(v)?"":"none"})};
   $$("#tab-commons .btn[data-b]").forEach(b=>b.onclick=()=>{
     const b4=snapStats();
     const r=E.enactBill(S,b.dataset.b,b.dataset.w==="1");
@@ -533,6 +582,11 @@ document.addEventListener("click",e=>{
 /* ---------- MEDIA ---------- */
 function renderMedia(){
   $("#tab-media").innerHTML=`<div class="lbl">The press · weighted index ${fmt1(S.mediaIndex)}</div>
+   <div class="panelbox"><h4>GO ON TELEVISION — whenever you dare</h4>
+    <div class="fmtgrid">${Object.entries(INTERVIEW_FORMATS).map(([k,f])=>`
+     <button class="choice" data-iv="${k}" ${S.pols.capital<f.cost?"disabled":""}>${f.name}
+      <small>${f.desc} · ${f.n} questions · reach ×${f.reach} · ${f.cost} capital${S.pols.capital<f.cost?" — NOT ENOUGH":""}</small></button>`).join("")}</div></div>
+   <div class="lbl" style="margin-top:16px">The papers</div>
    <div class="outgrid">${S.media.outlets.map((o,i)=>`<div class="panelbox"><h4>${o.n} <span class="dim small">· ${o.kind} · reach ${o.reach}</span></h4>
     <div class="track big"><div class="fill" style="width:${(o.stance+50)}%;background:${o.stance>10?"var(--bench)":o.stance<-10?"var(--red)":"var(--brass)"}"></div></div>
     <div class="small dim num">stance ${Math.round(o.stance)}</div>
@@ -541,6 +595,7 @@ function renderMedia(){
      <button class="btn ghost small" data-o="${i}" data-x="excl">Grant exclusive · 2 cap</button>
      ${o.kind==="tabloid"?`<button class="btn ghost small" data-o="${i}" data-x="yacht">Proprietor's yacht · 2 cap</button>`:""}
     </div></div>`).join("")}</div>`;
+  $$("#tab-media [data-iv]").forEach(b=>b.onclick=()=>startInterview(b.dataset.iv));
   $$("#tab-media .btn[data-o]").forEach(b=>b.onclick=()=>{
     const o=S.media.outlets[+b.dataset.o],x=b.dataset.x;
     const cost=x==="brief"?3:2;if(S.pols.capital<cost){toast("Not enough capital.");return}
@@ -587,7 +642,7 @@ function renderHub(){
 function renderCabinet(){
   const gov=S.meta.phase==="government";
   const pre=gov?"":"Shadow ";
-  $("#tab-cabinet").innerHTML=`<div class="lbl" style="margin:10px 0 2px">${pre}cabinet — real colleagues, live approval · replace 4 cap</div>
+  $("#tab-cabinet").innerHTML=`<div class="lbl" style="margin:10px 0 2px">${pre}cabinet · the bar shows each minister’s PUBLIC APPROVAL — red means they’re a liability · replace 4 cap</div>
    <div class="mingrid">${S.cabinet.map((m,i)=>`<div class="minister">
      <div class="lbl">${pre}${m.role}</div><h4>${m.name}</h4>
      <div class="track"><div class="fill" style="width:${m.app}%;background:${m.app>45?"var(--bench)":m.app>30?"var(--brass)":"var(--red)"}"></div></div>
@@ -602,6 +657,17 @@ function renderCabinet(){
       <button class="btn ghost small" data-f="${i}" data-x="pledge">Policy pledge</button></div></div>`).join("")}</div>
     <div><div class="lbl">Promises ledger</div>
      <div class="panelbox"><div class="cab">${S.promises.length?S.promises.map(p=>`<div class="row2"><span>${p.text}</span><span class="num ${p.status==="kept"?"good":p.status==="broken"?"bad":"dim"}">${p.status.toUpperCase()}</span></div>`).join(""):"<div class='dim'>No hostages to fortune. Yet.</div>"}</div></div>
+
+   <div class="panelbox"><h4>CROSS-PARTY GAMES — talk, steal, ally, absorb</h4>
+    <div class="cab">${Object.keys(PARTIES).filter(k=>k!==S.meta.party&&k!=="snp").map(k=>
+     `<div class="row2"><span><span style="color:${PARTIES[k].col}">■</span> ${PARTIES[k].name} <span class="dim small">· ${REAL_LEADERS[k]||""} · polls ${fmt1(S.polls[k]||0)}%</span></span>
+      <span class="num dim">rel ${E.relOf(S,k)}</span></div>`).join("")}</div>
+    <div class="menu tight" style="margin-top:10px">
+     <button class="btn ghost small" data-xp="summit">Leader summit · 4</button>
+     <button class="btn ghost small" data-xp="poach">Court a defector · 8</button>
+     ${S.meta.phase==="opposition"?'<button class="btn ghost small" data-xp="pact">Propose electoral pact · 6</button>':""}
+     <button class="btn ghost small" data-xp="merge">Merger talks · 12</button>
+    </div></div>
      <div class="lbl" style="margin-top:14px">The bench</div>
      <div class="panelbox"><div class="cab">${(S.bench||[]).map(b=>`<div class="row2"><span>${b.name} <span class="dim small">(${b.fav})</span></span><span class="num dim">app ${Math.round(b.app)}</span></div>`).join("")||"<div class='dim'>Nobody left worth promoting. Worrying.</div>"}</div></div>
     </div></div>`;
@@ -617,6 +683,22 @@ function renderCabinet(){
       if(!r.ok){toast(r.msg||"Cannot.");return}
       toast("<b>RESHUFFLED</b>");renderAll();save()});
   });
+
+  $$("#tab-cabinet [data-xp]").forEach(b=>b.onclick=()=>{
+    const op=b.dataset.xp;
+    const targets=Object.keys(PARTIES).filter(k=>k!==S.meta.party&&k!=="snp"&&!(S.meta.phase==="opposition"&&op==="pact"&&S.opp&&k===S.opp.gov.party));
+    modal(`<div class="lbl gold">${{summit:"Leader summit",poach:"Court a defector",pact:"Electoral pact",merge:"Merger talks"}[op]}</div>
+     <h3>With which party?</h3><div class="opts">${targets.map(k=>`<button class="choice" data-k="${k}"><span style="color:${PARTIES[k].col}">■</span> ${PARTIES[k].name}<small>${REAL_LEADERS[k]||""} · polls ${fmt1(S.polls[k]||0)}% · relationship ${E.relOf(S,k)}</small></button>`).join("")}</div>
+     <div class="menu"><button class="btn ghost" id="xpclose">Never mind</button></div>`);
+    $("#xpclose").onclick=closeModal;
+    $$("#modal .choice").forEach(c=>c.onclick=()=>{closeModal();
+      const b4=snapStats();
+      const r=op==="summit"?E.partySummit(S,c.dataset.k)
+        :op==="poach"?E.poachMP(S,c.dataset.k)
+        :op==="pact"?E.proposePact(S,c.dataset.k)
+        :E.proposeMerger(S,c.dataset.k);
+      if(!r.ok){toast(r.msg||"Cannot.");return}
+      toastDiff(b4);renderAll();save()})});
   $$("#tab-cabinet .btn[data-f]").forEach(b=>b.onclick=()=>{
     const f=S.party.factions[+b.dataset.f];
     if(b.dataset.x==="court"){if(S.pols.capital<4){toast("Not enough capital.");return}
@@ -666,6 +748,18 @@ function renderCampaign(){
      ${S.opp?`<div class="row2"><span>Campaign fund</span><span class="num">£${fmt1(S.opp.warchest)}m</span></div>`:""}
      <div class="row2"><span>Target region</span><span class="num">${target?target.toUpperCase()+" ✓":"none"}</span></div>
     </div></div>
+
+    <div class="panelbox"><h4>MANIFESTO POSITIONS — where you stand · ▲ marks public opinion</h4>
+     <div id="stances">${Object.entries(ISSUES).map(([k,v])=>{
+       const sv=S.stance?S.stance[k]:0,pub=S.pubop?S.pubop[k]:v.pub;
+       return`<div class="sl stancerow"><label>${v.n}<span class="num">${sv>0?"+":""}${fmt1(sv)}</span></label>
+        <div class="stancewrap"><span class="pubmark" style="left:${(pub+2)/4*100}%">▲</span>
+        <input type="range" min="-2" max="2" step="0.5" value="${sv}" data-st="${k}"></div>
+        <div class="stancelbls"><span>${v.lo}</span><span>${v.hi}</span></div></div>`}).join("")}</div>
+     <div class="menu tight">${S.meta.phase==="opposition"
+       ?'<button class="btn small" id="bt-manifesto">Publish manifesto positions</button>'
+       :'<button class="btn small" id="bt-positions">Set the government’s line · 3 capital</button>'}
+      <span class="dim small">Closer to public opinion = polling tailwind. Your factions have feelings about it.</span></div></div>
     <div class="panelbox"><h4>Target a region — extra effort where it matters</h4>
      <div class="opts">${ELECT_REGIONS.map(([k,label,seats])=>`<button class="choice small ${target===k?"selz":""}" data-tr="${k}">${label} <small>${seats} seats${target===k?" · TARGETED":""}</small></button>`).join("")}</div></div>
     ${gov?`<div class="panelbox"><h4>Go early?</h4><p class="body dim small">The projection in panel 3 is your honest odds. There's no taking it back.</p>
@@ -674,6 +768,17 @@ function renderCampaign(){
      <div class="menu tight"><button class="btn ghost small" id="bt-fund" ${S.pols.capital<3?"disabled":""}>Fundraise · 3 capital</button></div></div>`}
    </div></div>`;
   drawPolls("#polls2","#polleg2");
+
+  $$("#tab-campaign [data-st]").forEach(inp=>inp.oninput=()=>{
+    inp.closest(".stancerow").querySelector("label .num").textContent=(+inp.value>0?"+":"")+fmt1(+inp.value)});
+  const applyStances=()=>{$$("#tab-campaign [data-st]").forEach(inp=>E.setStance(S,inp.dataset.st,+inp.value))};
+  const bm=$("#bt-manifesto");if(bm)bm.onclick=()=>{applyStances();S.flags.platformSet=true;
+    E.applyEffects(S,{poll:.5});E.frontPage(S,"THE MANIFESTO POSITIONS","Eight answers to eight arguments, in writing. Brave, by Westminster standards.");
+    toast("<b>PUBLISHED</b>");renderAll();save()};
+  const bp=$("#bt-positions");if(bp)bp.onclick=()=>{
+    if(S.pols.capital<3){toast("Not enough capital.");return}
+    E.applyEffects(S,{capital:-3});applyStances();
+    toast("<b>LINE SET</b> · the lobby is briefed");renderAll();save()};
   $$("#tab-campaign [data-tr]").forEach(b2=>b2.onclick=()=>{S.flags.targetRegion=b2.dataset.tr;toast("<b>TARGETED</b> · extra swing in "+b2.dataset.tr.toUpperCase());renderCampaign();save()});
   const sn=$("#bt-snap2");if(sn)sn.onclick=()=>{
     if(S.pols.capital<20){toast("Not enough capital (need 20).");return}
@@ -687,6 +792,34 @@ function renderCampaign(){
     if(Math.random()<0.12){E.applyEffects(S,{sleaze:4});toast("<b>£1.5m RAISED</b> · Clive came with strings")}
     else toast("<b>£1.5m RAISED</b>");renderAll();save()};
 }
+
+/* ---------- the studio ---------- */
+function startInterview(fmtKey){
+  const f=INTERVIEW_FORMATS[fmtKey];
+  if(S.pols.capital<f.cost){toast("Not enough capital.");return}
+  E.applyEffects(S,{capital:-f.cost});
+  const iv=E.interviewBuild(S,fmtKey);
+  let qi=0,score=0;const b4=snapStats();
+  const ask=()=>{
+    if(qi>=iv.qs.length){
+      const res=E.interviewFinish(S,fmtKey,score,iv.qs.length);
+      modal(`<div class="onair">OFF AIR</div><h3>${res==="triumph"?"You owned the studio.":res==="fine"?"You survived it.":"That… will follow you."}</h3>
+       <div class="body">${res==="triumph"?"The clips run all evening — for once, in your favour.":res==="fine"?"No headlines is good headlines.":"One answer is already a meme with four million views."}</div>
+       <div class="menu"><button class="btn" id="iv-done">Leave the studio</button></div>`,true);
+      $("#iv-done").onclick=()=>{closeModal();toastDiff(b4);renderAll();save()};
+      return;}
+    const q=iv.qs[qi];
+    modal(`<div class="onair">● ON AIR — ${f.name.toUpperCase()} · Q${qi+1} OF ${iv.qs.length}</div>
+     <h3 class="ivq">“${q.q}”</h3>
+     <div class="opts">${q.opts.map((o,i)=>`<button class="choice quote" data-i="${i}">${o[0]}</button>`).join("")}</div>
+     <div class="perfbar"><div style="width:${clampPct(50+score*8)}%"></div></div>`,true);
+    $$("#modal .choice").forEach(c=>c.onclick=()=>{
+      score+=E.interviewAnswer(S,q.opts[+c.dataset.i],f.reach);qi++;ask()});
+  };
+  ask();
+}
+function clampPct(x){return Math.max(4,Math.min(96,x))}
+
 /* ---------- core flow ---------- */
 function advance(){
   staged=null;busy=true;$("#bt-advance").disabled=true;
@@ -821,7 +954,7 @@ function openElection(it){
        <div class="small dim" style="margin-top:8px">Campaign strength: <b class="num">${fmt1(boost)}</b>${S.flags.targetRegion?" · targeting "+S.flags.targetRegion.toUpperCase():""}</div>`,true);
       $$("#modal .choice").forEach(b=>b.onclick=()=>{boost+=c.o[+b.dataset.i][1];step++;pushPoll();stepFn()});
       return}
-    const R=E.computeElection(S,boost+(S.opp&&S.opp.warchest>6?1:0));
+    const R=E.computeElection(S,boost+(S.opp&&S.opp.warchest>6?1:0),{shock:true});
     S.lastElection=R;
     const mine=R.rows[0].seats,newMaj=mine*2-650;
     const CA=E.coalitionAnalysis(R.rows);
@@ -837,6 +970,7 @@ function openElection(it){
     modal(`<div class="lbl gold">Election night</div>
      <h3>${win?"A MANDATE":hung?"A HUNG PARLIAMENT":"DEFEAT"}</h3>
      <div class="body">${win?`The map turns ${PARTIES[S.meta.party].name} at 3.41am. Majority of <b class="num">${newMaj}</b>.`:CA.text}</div>
+     <div class="dim small" style="margin:4px 0 8px">${R.pollErr?`The final polls were out by <b class="num">${fmt1(Math.abs(R.pollErr))}%</b> — ${R.pollErr>0?"in your favour":"against you"}.`:""} ${S.flags.pactWith?`Your pact with ${PARTIES[S.flags.pactWith].name} held.`:""}</div>
      ${seatBarHTML(R.rows)}
      ${ukMapHTML(R,"THE RESULT — all 650 seats")}
      <div class="menu">${win?'<button class="btn" id="elc">Govern</button>'
