@@ -126,6 +126,23 @@ for(let i=0;i<30;i++){
    if(E.appointPeers(PL).ok)throw new Error("peers appointable after abolition");
    if(PL.lords.peers!==0)throw new Error("old peers survived abolition");}
  console.log("anchors hold (AI lab "+P1.polls.lab.toFixed(1)+", player lab "+P2.polls.lab.toFixed(1)+") · any-state war OK · Senate Act gates the pen");}
+// PR Act: subsequent elections are proportional
+{const PR=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'pr-act',name:'P'});
+ PR.pols.capital=99;
+ const before=E.computeElection(PR,0,{projection:true});
+ const bTop=[...before.rows].sort((a,b)=>b.seats-a.seats)[0];
+ const r=E.enactBill(PR,'pr');
+ if(r.ok&&r.div.pass){
+   if(!PR.policy.pr)throw new Error("pr policy flag missing");
+   const after=E.computeElection(PR,0,{projection:true});
+   for(const row of after.rows){if(row.key==="ni")continue;
+     const dev=Math.abs(row.seats/650-row.v/96);
+     if(dev>0.07)throw new Error("PR not proportional: "+row.key+" "+(row.seats)+" seats on "+row.v.toFixed(1)+"% (dev "+(dev*100).toFixed(1)+"pp)");}
+   const aTop=[...after.rows].sort((a,b)=>b.seats-a.seats)[0];
+   const fptpBonus=bTop.seats/650-bTop.v/96, prBonus=aTop.seats/650-aTop.v/96;
+   if(prBonus>=fptpBonus&&fptpBonus>0.03)throw new Error("PR did not remove the winner's bonus");
+   console.log("PR Act OK: FPTP leader bonus "+(fptpBonus*100).toFixed(1)+"pp -> PR "+(prBonus*100).toFixed(1)+"pp; all parties within 7pp of vote share");
+ } else console.log("PR Act: division lost in this seed (allowed) — proportionality untested this run");}
 for(const cfg of MATRIX){
   try{
     const S=E.newGame(cfg);

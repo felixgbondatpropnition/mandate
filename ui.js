@@ -815,7 +815,7 @@ function renderCampaign(){
     <div class="panelbox"><h4>2 · NATIONAL POLLS — the country's mood now</h4>
      <svg id="polls2" viewBox="0 0 660 300" class="hugechart"></svg>
      <div class="polleg" id="polleg2"></div></div>
-    <div class="panelbox"><h4>3 · IF THE ELECTION WERE TODAY — polls turned into seats</h4>
+    <div class="panelbox"><h4>3 · IF THE ELECTION WERE TODAY — polls turned into seats${S.policy&&S.policy.pr?' · <span class="warn">PR IN FORCE — seats track votes</span>':""}</h4>
      <div class="body" style="margin-bottom:6px">${CA.text}</div>
      ${seatBarHTML(P.rows)}
      <div class="ukduo">${ukMapHTML(P,"PROJECTED SEATS — all 650")}
@@ -1276,7 +1276,7 @@ function openElection(it){
         if(tot2>325||ix===CA.combo.length-1)dealBtns+=`<button class="btn" data-deal="${ix}">Deal with ${run.map(r=>r.n.replace(" (you)","")).join(" + ")} — ${tot2} seats</button>`});
     }
     modal(`<div class="lbl gold">Election night</div>
-     <h3>${win?"A MANDATE":hung?"A HUNG PARLIAMENT":"DEFEAT"}</h3>
+     <h3>${win?"A MANDATE":hung?"A HUNG PARLIAMENT":"DEFEAT"}${S.policy&&S.policy.pr?' <span class="dim" style="font-size:14px">· under proportional representation</span>':""}</h3>
      <div class="body">${win?`The map turns ${PARTIES[S.meta.party].name} at 3.41am. Majority of <b class="num">${newMaj}</b>.`:CA.text}</div>
      <div class="dim small" style="margin:4px 0 8px">${R.pollErr?`The final polls were out by <b class="num">${fmt1(Math.abs(R.pollErr))}%</b> — ${R.pollErr>0?"in your favour":"against you"}.`:""} ${S.flags.pactWith?`Your pact with ${PARTIES[S.flags.pactWith].name} held.`:""}</div>
      ${seatBarHTML(R.rows)}

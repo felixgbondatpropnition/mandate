@@ -1040,7 +1040,7 @@ function computeElection(S,boost,opts){
     const ws=rows.map(r=>{
       let w=(PARTIES[r.key]&&PARTIES[r.key].region)?(PARTIES[r.key].region[key]??1):1;
       let s=r.v*w;
-      return Math.pow(Math.max(s,0.01),3)});
+      return Math.pow(Math.max(s,0.01),(S.policy&&S.policy.pr)?1:3)});
     const sum=ws.reduce((a,b)=>a+b,0);
     const alloc=rows.map((r,i)=>Math.floor(seats*ws[i]/sum));
     let used=alloc.reduce((a,b)=>a+b,0);

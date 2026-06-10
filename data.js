@@ -251,6 +251,7 @@ const BILLS=[
  {id:"points",n:"Skills-First Visa Act",ideo:{e:.4,s:.6},cost:8,desc:"Rebuild the points system around shortages. Technocratic, defensible.",fx:{svc:{mig:-50},econ:{g:.1}},quip:"THE NEW FRONT DOOR"},
  {id:"prisonbuild",n:"Prison Capacity Act",ideo:{e:.3,s:1},cost:8,desc:"Twenty thousand places. Unsexy, necessary, photographs terribly.",fx:{svc:{crime:-2},econ:{spendBump:.3}},quip:"BRITAIN BUILDS CELLS, PROPERLY"},
  {id:"devomax",n:"Devolution Maximum Act",ideo:{e:-.3,s:-.6},cost:10,desc:"Hand the nations everything short of embassies. The Union's last offer.",fx:{scot:-12,app:1,unity:-3},quip:"THE FAMILY RENEGOTIATED"},
+{id:"pr",n:"Proportional Representation Act",ideo:{e:-.3,s:-.9},cost:14,desc:"Every election after this one: seats match votes, nationwide. Turkeys voting for Christmas — and yet here you are, carving.",fx:{app:1,unity:-6,faction:{"The Activists":8,"Social Liberals":8,"The Left":4,"The Old Guard":-6,"Thatcherites":-6}},quip:"WESTMINSTER, REWIRED"},
  {id:"euvet",n:"EU Alignment (Veterinary) Act",ideo:{e:-.2,s:-.6},cost:7,desc:"Sausages without strings. The quiet reunion, course one.",
   fx:{rel:{germany:6,france:6},econ:{g:.15},faction:{"National Right":-8,"The Leader's Circle":-8}},quip:"PEACE IN OUR TIME (FOR SAUSAGES)"},
 ];
