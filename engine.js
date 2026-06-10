@@ -70,6 +70,7 @@ function newGame(cfg){
   Object.defineProperty(S,"mediaIndex",{get(){const o=this.media.outlets;return o.reduce((a,x)=>a+x.stance*x.reach,0)/o.reduce((a,x)=>a+x.reach,0)},configurable:true});
   Object.defineProperty(S,"fiscalDeficit",{get(){return spendOf(this.fiscal)+this.econ.spendBump-revenueOf(this.fiscal)-this.econ.revBump},configurable:true});
   initPolls(S);
+  makeInitialHouse(S);
   S.hist.app.push(S.pols.approval);S.hist.gdp.push(100);S.hist.pollMe.push(S.pols.pollMe);S.hist.pollGov.push(S.opp?S.opp.gov.poll:40);
   return S;
 }
@@ -88,9 +89,9 @@ function dateStr(S){return ["January","February","March","April","May","June","J
 
 
 /* ---------- national polls: one machine feeds HUD, charts and elections ---------- */
-const POLL_PARTIES=["lab","con","lib","ref","grn","snp"];
+const POLL_PARTIES=["lab","con","lib","ref","grn","res","snp"];
 function initPolls(S){
-  const base={lab:31,con:28,lib:13,ref:17,grn:8,snp:3};
+  const base={lab:30,con:27,lib:13,ref:16,grn:7,res:5,snp:3};
   const polls={...base};
   const mine=S.meta.party;
   if(S.meta.phase==="government")polls[mine]=clamp(24+0.42*S.pols.approval,20,48);
@@ -105,7 +106,7 @@ function initPolls(S){
 }
 function tickPolls(S){
   const mine=S.meta.party;
-  const base={lab:25,con:23,lib:12,ref:15,grn:8};
+  const base={lab:25,con:23,lib:12,ref:15,grn:7};
   const tgt={};
   if(S.meta.phase==="government"){
     tgt[mine]=clamp(24+0.42*S.pols.approval,16,50);
@@ -118,6 +119,11 @@ function tickPolls(S){
     tgt[mine]=clamp(basePoll(S)+(42-G.approval)*0.5+(S.pols.approval-42)*0.35+S.mediaIndex/9,8,52);
     for(const k of POLL_PARTIES)if(tgt[k]===undefined&&k!=="snp")tgt[k]=base[k]||8;
   }
+  // Restore Britain feeds on Reform's flank and migration anger
+  const refNow=S.polls.ref||14;
+  const shift=clamp((refNow-13)*0.25,0,5)+(S.svc.mig>600?1.2:0)+(S.flags.migSalient?0.8:0);
+  tgt.res=clamp(4.5+shift,2.5,13);
+  if(tgt.ref!==undefined)tgt.ref=clamp(tgt.ref-shift*0.7,6,50);
   tgt.snp=clamp(3+(S.world.scot-42)/25,1.5,6);
   for(const k of POLL_PARTIES)S.polls[k]=clamp(S.polls[k]+0.22*((tgt[k]??S.polls[k])-S.polls[k])+(S.rng()-.5)*0.9,1,55);
   const t=Object.values(S.polls).reduce((a,b)=>a+b,0);
@@ -350,13 +356,13 @@ function runByelection(S,near){
   const p=sig((S.pols.approval-43)/7+(near?0.15:0));
   const win=S.rng()<p;
   if(win){applyEffects(S,{app:2,unity:4,capital:4});frontPage(S,"MIDDLEWICH HOLDS","The pollsters retreat to lick their models. No. 10 allows itself one (1) glass.")}
-  else{S.party.seats-=1;applyEffects(S,{app:-3,unity:-6});frontPage(S,"MIDDLEWICH FALLS","A 14% swing against. The graphic is a wedge of doom.")}
+  else{S.party.seats-=1;houseByelection(S,false);applyEffects(S,{app:-3,unity:-6});frontPage(S,"MIDDLEWICH FALLS","A 14% swing against. The graphic is a wedge of doom.")}
   log(S,"By-election "+(win?"held":"lost"));return win;
 }
 function runOppByelection(S,big){
   const p=sig((S.pols.pollMe-S.opp.gov.poll)/6+(big?0.2:-0.1));
   const win=S.rng()<p;
-  if(win){S.party.seats+=1;applyEffects(S,{poll:1.2,unity:5,gov:{app:-2}});frontPage(S,"CRANDLEFORD FALLS TO "+PARTIES[S.meta.party].name.toUpperCase(),"A "+riR(S,9,18)+"% swing. Government MPs check their own majorities and feel unwell.")}
+  if(win){S.party.seats+=1;houseByelection(S,true);applyEffects(S,{poll:1.2,unity:5,gov:{app:-2}});frontPage(S,"CRANDLEFORD FALLS TO "+PARTIES[S.meta.party].name.toUpperCase(),"A "+riR(S,9,18)+"% swing. Government MPs check their own majorities and feel unwell.")}
   else{applyEffects(S,{poll:-1,unity:-5});frontPage(S,"CRANDLEFORD STAYS PUT","All that mileage for a hold. Your activists deserve a bath and an apology.")}
   log(S,"By-election "+(win?"GAINED":"missed"));return win;
 }
@@ -455,7 +461,7 @@ function computeDivision(S,bill,whipped){
     const n=Math.round(S.party.seats*f.w*rr);
     rebels+=n;if(n>3)rebelNames.push(f.leader+" + "+(n-1)+" of "+f.name);
   });
-  const partner=S.flags.minority?Math.round(8*(S.rng()<0.7?1:0)):0;
+  const partner=S.flags.coalitionSeats?S.flags.coalitionSeats:(S.flags.minority?Math.round(8*(S.rng()<0.7?1:0)):0);
   const ayes=S.party.seats-rebels+partner;
   const oppFor=bill.ideo.e<-1?0:0;
   const noes=650-S.party.seats-18-(S.flags.minority?partner:0)+rebels*0+oppFor;
@@ -600,7 +606,7 @@ function computeElection(S,boost){
     while(used<seats){const fr=rows.map((r,i)=>seats*ws[i]/sum-alloc[i]);alloc[fr.indexOf(Math.max(...fr))]++;used++}
     alloc.forEach((s,i)=>rows[i].seats+=s);
     let wi=0;alloc.forEach((s,i)=>{if(s>alloc[wi])wi=i});
-    return{key,label,seats,winner:rows[wi].n,col:rows[wi].c,mine:alloc[youIdx]};
+    return{key,label,seats,winner:rows[wi].n,col:rows[wi].c,mine:alloc[youIdx],breakdown:alloc.slice()};
   });
   rows.push({n:"NI & others",key:"ni",v:1.8,c:"#777",seats:18});
   return{rows,regions};
@@ -646,6 +652,68 @@ function debateResolve(S,topicK,style){
   return{d:hit?2.8:-1,txt:hit?"For ninety seconds the country imagines it. Gold.":"Big words, few numbers; the fact-checkers feast."};
 }
 
+
+/* ---------- coalition arithmetic & the sitting House ---------- */
+function coalitionAnalysis(rows){
+  const gb=rows.filter(r=>r.key!=="ni");
+  const sorted=[...gb].sort((a,b)=>b.seats-a.seats);
+  const top=sorted[0];
+  if(top.seats>325)return{majority:true,top,combo:[],total:top.seats,
+    text:`<b>${top.n.replace(" (you)","")}</b> majority of ${top.seats*2-650}`};
+  const ide=k=>PARTIES[k]?PARTIES[k].ideal.e:0;
+  const second=sorted[1];
+  const partners=sorted.slice(1).filter(r=>r.seats>0&&r!==second&&Math.abs(ide(r.key)-ide(top.key))<=1.35)
+    .sort((a,b)=>Math.abs(ide(a.key)-ide(top.key))-Math.abs(ide(b.key)-ide(top.key)));
+  const combo=[];let tot=top.seats;
+  for(const p of partners){if(tot>325)break;combo.push(p);tot+=p.seats;}
+  const viable=tot>325;
+  const tn=top.n.replace(" (you)","").replace(" (gov)","");
+  const names=combo.map(c=>c.n.replace(" (you)","").replace(" (gov)",""));
+  let text;
+  if(viable)text=`<b>HUNG</b> — likeliest deal: <b>${tn}</b> + ${names.join(" + ")} (${tot} seats → majority ${tot*2-650})`;
+  else if(combo.length)text=`<b>HUNG</b> — best on offer: <b>${tn}</b> + ${names.join(" + ")} reaches only ${tot} — ${326-tot} short. A wobbly minority, or another election`;
+  else text=`<b>HUNG</b> — <b>${tn}</b> has no plausible partners. Minority rule, vote by vote`;
+  return{majority:false,top,combo,total:tot,viable,text};
+}
+function setHouse(S,R){S.house={rows:JSON.parse(JSON.stringify(R.rows)),regions:JSON.parse(JSON.stringify(R.regions||[])),when:dateStr(S)}}
+function makeInitialHouse(S){
+  const R=projectElection(S);
+  const youIdx=0;
+  let diff=S.party.seats-R.rows[youIdx].seats;
+  R.rows[youIdx].seats=S.party.seats;
+  // take/give the difference from the largest other parties (never below zero)
+  const others=R.rows.filter(r=>!r.you&&r.key!=="ni");
+  let guard=0;
+  while(diff>0&&guard++<2000){const o=others.filter(x=>x.seats>0).sort((a,b)=>b.seats-a.seats)[0];if(!o)break;o.seats--;diff--;}
+  while(diff<0&&guard++<4000){const o=others.sort((a,b)=>b.seats-a.seats)[0];o.seats++;diff++;}
+  // rebuild regional breakdowns proportionally from the adjusted national rows
+  if(R.regions){const tots=R.rows.map(r=>r.seats);
+    R.regions.forEach(rg=>{
+      if(!rg.breakdown)return;
+      const gb=rg.seats;
+      const weights=rg.breakdown.map((b,i)=>b+0.15*(tots[i]||0)/650*gb);
+      const wsum=weights.reduce((a,b)=>a+b,0)||1;
+      const alloc=weights.map(w=>Math.floor(gb*w/wsum));
+      let used=alloc.reduce((a,b)=>a+b,0);
+      while(used<gb){const fr=weights.map((w,i)=>gb*w/wsum-alloc[i]);alloc[fr.indexOf(Math.max(...fr))]++;used++;}
+      rg.breakdown=alloc;rg.mine=alloc[0];
+      let wi=0;alloc.forEach((s2,i)=>{if(s2>alloc[wi])wi=i});
+      rg.winner=R.rows[wi].n;rg.col=R.rows[wi].c;
+    });}
+  setHouse(S,R);
+}
+function houseByelection(S,gain){
+  if(!S.house)return;
+  const rows=S.house.rows,you=rows.find(r=>r.you);
+  const others=rows.filter(r=>!r.you&&r.key!=="ni"&&r.seats>0).sort((a,b)=>b.seats-a.seats);
+  if(!you||!others.length)return;
+  if(gain){you.seats++;others[0].seats--;}else{you.seats--;others[0].seats++;}
+  const rg=(S.house.regions||[]).find(r=>r.key==="north")||S.house.regions&&S.house.regions[0];
+  if(rg&&rg.breakdown){const yi=rows.indexOf(you),oi=rows.indexOf(others[0]);
+    if(gain){rg.breakdown[yi]++;rg.breakdown[oi]=Math.max(0,rg.breakdown[oi]-1);rg.mine++}
+    else{rg.breakdown[yi]=Math.max(0,rg.breakdown[yi]-1);rg.breakdown[oi]++;rg.mine=Math.max(0,rg.mine-1)}}
+}
+
 /* ---------- legacy ---------- */
 function legacy(S){
   const avgApp=S.hist.app.reduce((a,b)=>a+b,0)/S.hist.app.length;
@@ -685,7 +753,7 @@ function nextInteraction(S){
 }
 
 /* ---------- exports ---------- */
-const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,
+const ENGINE={newGame,rehydrate,tick,nextInteraction,drawCard,resolveOption,adviceFor,applyEffects,swapMinister,debateResolve,projectElection,initPolls,POLL_PARTIES,coalitionAnalysis,setHouse,houseByelection,
   enactFiscal,leanOnBank,enactBill,computeDivision,regionAction,pmqsTopics,pmqsResolve,
   runConfVote,runByelection,runOppByelection,runLocals,runIndyref,warOffensive,warNegotiate,
   computeElection,settleElectionWin,settleElectionLoss,legacy,verdictText,frontPage,log,tick_news,

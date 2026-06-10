@@ -7,7 +7,7 @@ const { JSDOM, VirtualConsole } = require("jsdom");
 let html = fs.readFileSync(__dirname + "/index.html", "utf8");
 html = html.replace(/<link[^>]*fonts[^>]*>\s*/g, "");
 html = html.replace(/<link rel="stylesheet"[^>]*>\s*/g, "");
-for (const f of ["data.js", "engine.js", "ui.js"]) {
+for (const f of ["geo.js", "data.js", "engine.js", "ui.js"]) {
   html = html.replace(new RegExp(`<script src="${f}[^"]*"></script>`),
     () => "<script>" + fs.readFileSync(__dirname + "/" + f, "utf8") + "</script>");
 }
@@ -88,8 +88,12 @@ function click(el, what) {
     assert($$("#worldmap .land").length >= 12, "real continents drawn");
     click($('#gametabs button[data-t="campaign"]'), "campaign for projection");
     assert(/IF THE ELECTION WERE TODAY/i.test($("#tab-campaign").textContent), "live projection present");
+    assert(/THE HOUSE OF COMMONS NOW/i.test($("#tab-campaign").textContent), "house-now view");
+    assert($$("#tab-campaign .seatcell").length === 1300, "two full 650-seat maps (house + projection)");
+    assert(/majority of|HUNG/i.test($("#tab-campaign").textContent), "coalition verdict text");
+    assert($("#capnum"), "big capital meter");
     click($('#gametabs button[data-t="office"]'), "office for polls");
-    assert($$(".pl-chip").length >= 5, "multi-party poll legend");
+    assert($$(".pl-chip").length >= 7, "all-party poll legend incl Restore Britain");
     click($("#bt-menu"), "open menu");
     assert(/Save this career/i.test($("#modal").textContent), "career menu");
     click($("#mm-resume"), "resume");

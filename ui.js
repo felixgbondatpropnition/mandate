@@ -113,6 +113,31 @@ function renderWiz(){
 $("#bt-wizback").onclick=()=>{if(wizStep===0)show("#scr-title");else{wizStep--;renderWiz()}};
 
 
+
+/* ---------- the 650-seat map of Britain ---------- */
+let UKCELLS=null;
+function ukCells(){if(UKCELLS)return UKCELLS;UKCELLS={};if(typeof UK_MAP!=="undefined")UK_MAP.seats.forEach(s=>{(UKCELLS[s[2]]=UKCELLS[s[2]]||[]).push(s)});return UKCELLS}
+function ukMapHTML(R,title){
+  if(typeof UK_MAP==="undefined"||!R||!R.regions||!R.regions.length)return"";
+  const cells=ukCells(),rows=R.rows;
+  let rects="";
+  for(const rg of R.regions){
+    const list=cells[rg.key]||[];let ci=0;
+    const order=(rg.breakdown||[]).map((s,i)=>[s,i]).sort((a,b)=>b[0]-a[0]);
+    for(const[cnt,pi]of order){for(let k=0;k<cnt&&ci<list.length;k++,ci++){
+      const c=list[ci];
+      rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="${rows[pi].c}"><title>${rg.label} — ${rows[pi].n.replace(" (you)","")}</title></rect>`}}
+    while(ci<list.length){const c=list[ci++];rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="#39414f"/>`}
+  }
+  (cells.ni||[]).forEach(c=>{rects+=`<rect x="${(c[0]-2.3).toFixed(1)}" y="${(c[1]-2.3).toFixed(1)}" width="4.6" height="4.6" rx="1" class="seatcell" fill="#5a5f6b"><title>Northern Ireland — local parties</title></rect>`});
+  const outline=UK_MAP.outline.map(p=>`<path d="${p}" class="ukoutline"/>`).join("");
+  const I=UK_MAP.inset;
+  return`<div class="ukmapwrap"><span class="seclbl">${title}</span>
+   <svg viewBox="0 0 ${UK_MAP.W} ${UK_MAP.H}" class="ukmap">${outline}
+    <rect x="${I.x}" y="${I.y}" width="${I.w}" height="${I.h}" class="insetbox"/>
+    <text x="${I.x+I.w/2}" y="${I.y-4}" class="insetlbl">LONDON · 75</text>${rects}</svg></div>`;
+}
+
 /* ---------- outcome deltas + stat explainers ---------- */
 function snapStats(){return{app:S.pols.approval,poll:S.pols.pollMe,unity:S.pols.unity,cap:S.pols.capital,trust:S.econ.trust,med:S.mediaIndex,stand:S.world.standing}}
 function toastDiff(b4){
@@ -220,7 +245,7 @@ $("#bt-help").onclick=()=>openPrimer(true);
 function renderAll(){const vp=$("#viewport");const sy=vp?vp.scrollTop:window.scrollY;renderHUD();renderTicker();
   $$("#gametabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
   $$(".tabpane").forEach(p=>{const on=p.id==="tab-"+tab;p.classList.toggle("on",on);if(!on)p.innerHTML=""});
-  if(tab==="office")$("#tab-office").innerHTML='<div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div>';
+  if(tab==="office")$("#tab-office").innerHTML='<div id="ov-top"></div><div class="duo"><div id="ov-left"></div><div id="ov-right"></div></div>';
   ({hub:renderHub,office:renderOverview,cabinet:renderCabinet,treasury:renderTreasury,commons:renderParliament,world:renderWorld,media:renderMedia,campaign:renderCampaign})[tab]();
   if(vp)vp.scrollTop=sy;else window.scrollTo({top:sy});
 }
@@ -231,7 +256,8 @@ function renderHUD(){
   const due=gov?Math.max(0,58-(S.meta.month-S.meta.termStart)):Math.max(0,S.opp.electionDue);
   const te=$("#t-elect");if(te){te.textContent="≤"+due+"m";te.className="v num "+(due>24?"good":due>9?"warn":"bad")}
   const adv=$("#bt-advance");if(adv)adv.innerHTML="ADVANCE — "+(MONTHS[(S.moy+1)%12]).toUpperCase()+" ▸";
-  const cf=$("#capfill");if(cf)cf.style.width=S.pols.capital+"%";
+  const cf=$("#capfill");if(cf){cf.style.width=S.pols.capital+"%";cf.classList.toggle("low",S.pols.capital<15)}
+  const cn=$("#capnum");if(cn)cn.textContent=Math.round(S.pols.capital)+" / 100";
   const tiles=[["t-app",p.approval,"%",v=>v>49?"good":v>37?"warn":"bad"],
     ["t-poll",p.pollMe,"%",v=>v>(gov?40:S.opp.gov.poll)?"good":"warn"],
     ["t-seat",gov?S.majority:S.party.seats,"",v=>gov?(v>30?"good":v>0?"warn":"bad"):(v>250?"good":"warn")],
@@ -253,17 +279,16 @@ function renderTicker(){
 }
 
 /* ---------- OVERVIEW (Office) ---------- */
-const PNAMES={lab:"Labour",con:"Conservative",lib:"Lib Dem",ref:"Reform UK",grn:"Green",snp:"SNP"};
+const PNAMES={lab:"Labour",con:"Conservative",lib:"Lib Dem",ref:"Reform UK",grn:"Green",res:"Restore",snp:"SNP"};
 function renderOverview(){
   const gov=S.meta.phase==="government";
   const govParty=gov?S.meta.party:S.opp.gov.party;
   const due=gov?Math.max(0,58-(S.meta.month-S.meta.termStart)):Math.max(0,S.opp.electionDue);
   const warB=S.world.war?`<div class="warbanner">⚔ ${S.world.war.name} — support ${Math.round(S.world.war.support)}% · casualties ${Math.round(S.world.war.cas)}</div>`:"";
-  $("#ov-left").innerHTML=warB+`
-   <div class="panelbox"><h4>National polls — all parties</h4>
-    <svg id="polls" viewBox="0 0 600 130" preserveAspectRatio="none" class="bigchart"></svg>
-    <div class="polleg" id="polleg"></div></div>
-   <div class="panelbox"><h4>What's been happening</h4><div class="log">${S.log.map(l=>`<div><b>${l.m}</b>${l.t}</div>`).join("")||"<div>Nothing yet. It won't last.</div>"}</div></div>`;
+  $("#ov-top").innerHTML=warB+`<div class="panelbox"><h4>National polls — all parties</h4>
+    <svg id="polls" viewBox="0 0 660 300" class="hugechart"></svg>
+    <div class="polleg" id="polleg"></div></div>`;
+  $("#ov-left").innerHTML=`<div class="panelbox"><h4>What's been happening</h4><div class="log tall">${S.log.map(l=>`<div><b>${l.m}</b>${l.t}</div>`).join("")||"<div>Nothing yet. It won't last.</div>"}</div></div>`;
   drawPolls("#polls","#polleg");
   $("#ov-right").innerHTML=`
    <div class="panelbox"><h4>The state of play</h4><div class="cab">
@@ -285,21 +310,25 @@ function renderOverview(){
        ["Scandal pressure",Math.round(S.pols.sleaze)+"/100",S.pols.sleaze<35?"good":S.pols.sleaze<60?"warn":"bad"],
        ["World standing",Math.round(S.world.standing)+"/100",S.world.standing>55?"good":"warn"]]
      .map(x=>`<div class="row2"><span>${x[0]}</span><span class="num ${x[2]}">${x[1]}</span></div>`).join("")}</div></div>`;
-  const P=E.projectElection(S);const top=[...P.rows].sort((x,y)=>y.seats-x.seats)[0];
-  $("#ov-proj").innerHTML=top.seats>325?`<span style="color:${top.c}">${top.n.replace(" (you)","")}</span> majority ${top.seats*2-650}`:`hung — <span style="color:${top.c}">${top.n.replace(" (you)","")}</span> largest`;
+  const P=E.projectElection(S);const CA=E.coalitionAnalysis(P.rows);
+  $("#ov-proj").innerHTML=CA.majority?CA.text:`hung — see Campaign HQ`;
 }
 function drawPolls(sel,legSel){
   const H=S.hist.polls;if(!H)return;
   const keys=E.POLL_PARTIES.filter(k=>H[k]);
   const N=H[keys[0]].length;if(N<2)return;
-  const x=i=>i/(N-1)*600,y=v=>126-(v/55)*120;
-  const grid=[10,20,30,40,50].map(g=>`<line x1="0" y1="${y(g)}" x2="600" y2="${y(g)}" class="pgrid"/><text x="3" y="${y(g)-2}" class="pgl">${g}%</text>`).join("");
+  const ymax=Math.max(38,Math.ceil(Math.max(...keys.map(k=>Math.max(...H[k])))/5)*5+5);
+  const x=i=>i/(N-1)*560,y=v=>292-(v/ymax)*276;
+  let grid="";for(let g=10;g<ymax;g+=10)grid+=`<line x1="0" y1="${y(g)}" x2="560" y2="${y(g)}" class="pgrid"/><text x="4" y="${y(g)-3}" class="pgl">${g}%</text>`;
   const lines=keys.map(k=>{
     const me=k===S.meta.party;
     const p=H[k].map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
-    return`<path d="${p}" fill="none" stroke="${PARTIES[k].col}" stroke-width="${me?2.6:1.3}" opacity="${me?1:.75}"/>`}).join("");
+    const last=H[k][N-1];
+    return`<path d="${p}" fill="none" stroke="${PARTIES[k].col}" stroke-width="${me?3.4:1.8}" opacity="${me?1:.8}"/>
+     <circle cx="${x(N-1)}" cy="${y(last)}" r="${me?4:2.6}" fill="${PARTIES[k].col}"/>
+     <text x="566" y="${(y(last)+3).toFixed(1)}" class="plend" fill="${PARTIES[k].col}">${PNAMES[k]} ${fmt1(last)}</text>`}).join("");
   const el=$(sel);if(el)el.innerHTML=grid+lines;
-  const leg=$(legSel);if(leg)leg.innerHTML=keys.sort((a,b2)=>S.polls[b2]-S.polls[a])
+  const leg=$(legSel);if(leg)leg.innerHTML=[...keys].sort((a2,b2)=>S.polls[b2]-S.polls[a2])
     .map(k=>`<span class="pl-chip${k===S.meta.party?" me":""}"><i style="background:${PARTIES[k].col}"></i>${PNAMES[k]} <b class="num">${fmt1(S.polls[k])}%</b></span>`).join("");
 }
 function paperHTML(){const pp=S.paper;
@@ -527,14 +556,15 @@ function renderMedia(){
 function renderHub(){
   const gov=S.meta.phase==="government";
   const lead=S.meta.phase==="government"?"":(" · "+(S.pols.pollMe-S.opp.gov.poll>=0?"+":"")+fmt1(S.pols.pollMe-S.opp.gov.poll)+" v gov");
+  const rank=[...E.POLL_PARTIES].sort((a,b)=>S.polls[b]-S.polls[a]).indexOf(S.meta.party)+1;
   const rooms=[
-   ["office","YOUR OFFICE",60,150,200,120,"approval "+Math.round(S.pols.approval)+"%"],
-   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",300,60,200,100,"unity "+Math.round(S.pols.unity)],
-   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",540,60,200,100,"deficit "+fmt1(S.fiscalDeficit)+"%"],
-   ["commons","COMMONS CHAMBER",300,260,200,100,gov?("majority "+S.majority):("seats "+S.party.seats)],
-   ["world","SITUATION ROOM",540,260,200,100,S.world.war?("⚔ "+S.world.war.name):("standing "+Math.round(S.world.standing))],
-   ["media","PRESS OFFICE",780,60,140,100,"press "+fmt1(S.mediaIndex)],
-   ["campaign","CAMPAIGN HQ",780,260,140,100,"poll "+fmt1(S.pols.pollMe)+"%"+lead],
+   ["office","YOUR OFFICE",34,148,212,118,"approval "+Math.round(S.pols.approval)+"%"],
+   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",286,34,212,118,"unity "+Math.round(S.pols.unity)],
+   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",538,34,212,118,"deficit "+fmt1(S.fiscalDeficit)+"%"],
+   ["commons","THE COMMONS",286,272,212,118,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
+   ["world","SITUATION ROOM",538,272,212,118,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
+   ["media","PRESS OFFICE",788,34,150,118,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
+   ["campaign","CAMPAIGN HQ",788,272,150,118,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
   ];
   const doors=`<path class="corridor" d="M260,210 H300 M500,110 H540 M500,310 H540 M740,110 H780 M740,310 H780 M400,160 V260 M640,160 V260 M160,150 V120 H300 M160,270 V310 H300"/>`;
   $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">No. 10 — the corridors of power · ${E.dateStr(S)}</div>
@@ -598,35 +628,45 @@ function renderCabinet(){
 }
 
 /* ---------- CAMPAIGN HQ ---------- */
+function seatBarHTML(rows){return`<div class="seatbar">${rows.map(r=>`<div style="width:${r.seats/650*100}%;background:${r.c}" title="${r.n} ${r.seats}"></div>`).join("")}</div>
+ <div class="seatkey">${[...rows].sort((a2,b2)=>b2.seats-a2.seats).filter(r=>r.seats>0).map(r=>`<span><span style="color:${r.c}">■</span> ${r.n.replace(" (you)"," — you")} <b class="num">${r.seats}</b></span>`).join(" ")}</div>`}
 function renderCampaign(){
   const gov=S.meta.phase==="government";
   const due=gov?Math.max(0,58-(S.meta.month-S.meta.termStart)):Math.max(0,S.opp.electionDue);
   const target=S.flags.targetRegion;
   const P=E.projectElection(S);
-  const sorted=[...P.rows].sort((a2,b2)=>b2.seats-a2.seats);
-  const top=sorted[0];
-  const verdict=top.seats>325?`<b style="color:${top.c}">${top.n.replace(" (you)","")}</b> wins with a majority of <b class="num">${top.seats*2-650}</b>`:`<b>HUNG PARLIAMENT</b> — <span style="color:${top.c}">${top.n.replace(" (you)","")}</span> the largest party`;
-  $("#tab-campaign").innerHTML=`<div class="duo">
+  const CA=E.coalitionAnalysis(P.rows);
+  const HCA=S.house?E.coalitionAnalysis(S.house.rows):null;
+  $("#tab-campaign").innerHTML=`<div class="duo wide">
    <div>
-    <div class="panelbox"><h4>IF THE ELECTION WERE TODAY — seat projection</h4>
-     <div class="body" style="margin-bottom:6px">${verdict}</div>
-     <div class="seatbar">${P.rows.map(r=>`<div style="width:${r.seats/650*100}%;background:${r.c}" title="${r.n} ${r.seats}"></div>`).join("")}</div>
-     <div class="seatkey">${sorted.map(r=>`<span><span style="color:${r.c}">■</span> ${r.n.replace(" (you)"," — you")} <b class="num">${r.seats}</b></span>`).join(" ")}</div>
-     ${electMapHTML(P.regions)}
-    </div>
-    <div class="panelbox"><h4>National polls</h4>
-     <svg id="polls2" viewBox="0 0 600 130" preserveAspectRatio="none" class="bigchart"></svg>
+    <div class="panelbox"><h4>1 · THE HOUSE OF COMMONS NOW <span class="dim">— as elected ${S.house?S.house.when:""}</span></h4>
+     ${S.house?seatBarHTML(S.house.rows):""}
+     <div class="ukduo">${S.house?ukMapHTML(S.house,"SEATS TODAY — all 650"):""}
+      <div class="panelbox slim"><h4>Where power sits</h4>
+       <div class="body">${HCA?HCA.text:""}</div>
+       ${S.flags.coalitionWith?`<div class="dim small" style="margin-top:8px">You govern in partnership with ${S.flags.coalitionWith}.</div>`:""}
+      </div></div></div>
+    <div class="panelbox"><h4>2 · NATIONAL POLLS — the country's mood now</h4>
+     <svg id="polls2" viewBox="0 0 660 300" class="hugechart"></svg>
      <div class="polleg" id="polleg2"></div></div>
+    <div class="panelbox"><h4>3 · IF THE ELECTION WERE TODAY — polls turned into seats</h4>
+     <div class="body" style="margin-bottom:6px">${CA.text}</div>
+     ${seatBarHTML(P.rows)}
+     <div class="ukduo">${ukMapHTML(P,"PROJECTED SEATS — all 650")}
+      <div class="panelbox slim"><h4>Swing vs the House</h4><div class="cab">
+       ${P.rows.filter(r=>r.key!=="ni").map(r=>{const h=S.house?(S.house.rows.find(x=>x.key===r.key)||{seats:0}).seats:0;const d2=r.seats-h;
+         return`<div class="row2"><span style="color:${r.c}">${r.n.replace(" (you)"," — you")}</span><span class="num ${d2>0?"good":d2<0?"bad":"dim"}">${d2>0?"+":""}${d2}</span></div>`}).join("")}
+      </div>${target?`<div class="dim small" style="margin-top:8px">Targeting <b>${target.toUpperCase()}</b> — extra swing banked there.</div>`:""}</div></div></div>
    </div>
    <div>
     <div class="panelbox"><h4>The clock</h4><div class="cab">
      <div class="row2"><span>Next election</span><span class="num warn">within ${due} months</span></div>
      ${S.opp?`<div class="row2"><span>Campaign fund</span><span class="num">£${fmt1(S.opp.warchest)}m</span></div>`:""}
-     <div class="row2"><span>Target region bonus</span><span class="num">${target?target.toUpperCase()+" ✓":"none picked"}</span></div>
+     <div class="row2"><span>Target region</span><span class="num">${target?target.toUpperCase()+" ✓":"none"}</span></div>
     </div></div>
-    <div class="panelbox"><h4>Pick a target region — extra effort where it matters</h4>
+    <div class="panelbox"><h4>Target a region — extra effort where it matters</h4>
      <div class="opts">${ELECT_REGIONS.map(([k,label,seats])=>`<button class="choice small ${target===k?"selz":""}" data-tr="${k}">${label} <small>${seats} seats${target===k?" · TARGETED":""}</small></button>`).join("")}</div></div>
-    ${gov?`<div class="panelbox"><h4>Go early?</h4><p class="body dim small">You can call an election whenever you like. The projection above is your honest odds.</p>
+    ${gov?`<div class="panelbox"><h4>Go early?</h4><p class="body dim small">The projection in panel 3 is your honest odds. There's no taking it back.</p>
      <div class="menu tight"><button class="btn red small" id="bt-snap2">Call an election now · 20 capital</button></div></div>`
     :`<div class="panelbox"><h4>Fundraising</h4><p class="body dim small">Dinners, raffles, a man named Clive with opinions about crypto.</p>
      <div class="menu tight"><button class="btn ghost small" id="bt-fund" ${S.pols.capital<3?"disabled":""}>Fundraise · 3 capital</button></div></div>`}
@@ -635,7 +675,7 @@ function renderCampaign(){
   $$("#tab-campaign [data-tr]").forEach(b2=>b2.onclick=()=>{S.flags.targetRegion=b2.dataset.tr;toast("<b>TARGETED</b> · extra swing in "+b2.dataset.tr.toUpperCase());renderCampaign();save()});
   const sn=$("#bt-snap2");if(sn)sn.onclick=()=>{
     if(S.pols.capital<20){toast("Not enough capital (need 20).");return}
-    modal(`<h3>Call the election?</h3><div class="body">Projection: ${verdict}. Once you ask the country, there's no taking it back.</div>
+    modal(`<h3>Call the election?</h3><div class="body">${CA.text}. Once you ask the country, there's no taking it back.</div>
      <div class="menu"><button class="btn red" id="snapgo">Call it</button><button class="btn ghost" id="snapno">Not yet</button></div>`);
     $("#snapno").onclick=closeModal;
     $("#snapgo").onclick=()=>{closeModal();E.applyEffects(S,{capital:-20});S.flags._electionNow=true;advance()};};
@@ -645,16 +685,6 @@ function renderCampaign(){
     if(Math.random()<0.12){E.applyEffects(S,{sleaze:4});toast("<b>£1.5m RAISED</b> · Clive came with strings")}
     else toast("<b>£1.5m RAISED</b>");renderAll();save()};
 }
-function electMapHTML(regions){
-  if(!regions)return"";
-  return`<div class="electmap">${regions.map(r=>`<div class="eregion" style="border-color:${r.col}">
-    <div class="ername">${r.label}</div>
-    <div class="erbar" style="background:${r.col}"></div>
-    <div class="erstat num">${r.seats} seats · you ${r.mine}</div>
-    <div class="erwin dim small">${r.winner.replace(" (you)","")}</div></div>`).join("")}
-   <div class="eregion ni"><div class="ername">Northern Ireland</div><div class="erbar" style="background:#777"></div><div class="erstat num">18 seats · local parties</div></div></div>`;
-}
-
 /* ---------- core flow ---------- */
 function advance(){
   staged=null;busy=true;$("#bt-advance").disabled=true;
@@ -792,31 +822,48 @@ function openElection(it){
     const R=E.computeElection(S,boost+(S.opp&&S.opp.warchest>6?1:0));
     S.lastElection=R;
     const mine=R.rows[0].seats,newMaj=mine*2-650;
-    const rivalsMax=Math.max(...R.rows.filter(r=>!r.you&&r.key!=="ni").map(r=>r.seats));
-    const win=newMaj>0,hung=!win&&mine>=rivalsMax;
-    const bar=R.rows.map(r=>`<div style="width:${r.seats/650*100}%;background:${r.c}" title="${r.n} ${r.seats}"></div>`).join("");
-    const key=R.rows.map(r=>`<span><span style="color:${r.c}">■</span> ${r.n} <b class="num">${r.seats}</b></span>`).join(" ");
+    const CA=E.coalitionAnalysis(R.rows);
+    const youTop=CA.top&&CA.top.you;
+    const win=newMaj>0,hung=!win&&youTop;
+    const DEALS={lib:"Electoral reform referendum (deal)",snp:"A say on indyref (deal)",grn:"Green spending guarantees (deal)",ref:"A hard migration cap (deal)",res:"Restoration agenda concessions (deal)",lab:"A national-interest pact (deal)",con:"A national-interest pact (deal)"};
+    let dealBtns="";
+    if(hung&&CA.viable){
+      let run=[],tot2=mine;
+      CA.combo.forEach((p,ix)=>{run.push(p);tot2+=p.seats;
+        if(tot2>325||ix===CA.combo.length-1)dealBtns+=`<button class="btn" data-deal="${ix}">Deal with ${run.map(r=>r.n.replace(" (you)","")).join(" + ")} — ${tot2} seats</button>`});
+    }
     modal(`<div class="lbl gold">Election night</div>
      <h3>${win?"A MANDATE":hung?"A HUNG PARLIAMENT":"DEFEAT"}</h3>
-     <div class="body">${win?`The map turns ${PARTIES[S.meta.party].name} at 3.41am. Majority of <b class="num">${newMaj}</b>.`
-       :hung?`Largest party, no majority. The fax machine of history warms up.`
-       :`The country said no. ${gov?"The removal van was idling for a reason.":"The mountain stays unclimbed tonight."}`}</div>
-     <div class="seatbar">${bar}</div><div class="seatkey">${key}</div>
-     ${electMapHTML(R.regions)}
+     <div class="body">${win?`The map turns ${PARTIES[S.meta.party].name} at 3.41am. Majority of <b class="num">${newMaj}</b>.`:CA.text}</div>
+     ${seatBarHTML(R.rows)}
+     ${ukMapHTML(R,"THE RESULT — all 650 seats")}
      <div class="menu">${win?'<button class="btn" id="elc">Govern</button>'
-       :hung?'<button class="btn" id="eld">Coalition with the Lib Dems (PR promise)</button><button class="btn ghost" id="elm">Minority government</button>'
+       :hung?dealBtns+'<button class="btn ghost" id="elm">Govern alone as a minority</button>'
        :'<button class="btn red" id="elx">Face the music</button>'}</div>`,true);
-    if(win){$("#elc").onclick=()=>{closeModal();E.settleElectionWin(S,mine);
+    if(win){$("#elc").onclick=()=>{closeModal();E.settleElectionWin(S,mine);E.setHouse(S,R);
+      delete S.flags.coalitionSeats;delete S.flags.coalitionWith;
       if(newMaj>100)ach("landslide","Landslide — majority 100+");ach("first_win","Mandate — won a general election");
       if(S.meta.becamePM&&S.meta.oppMonths>0)ach("climber","The Long Climb — opposition to No. 10");
       renderAll();save();done()}}
-    else if(hung){$("#eld").onclick=()=>{closeModal();E.settleElectionWin(S,326);S.flags.minority=false;
-      E.applyEffects(S,{promise:"PR referendum (coalition deal)",unity:-6});ach("kingmaker","Kingmaker — governed by deal");
-      renderAll();save();done()};
-     $("#elm").onclick=()=>{closeModal();E.settleElectionWin(S,322);S.flags.minority=true;
-      E.applyEffects(S,{unity:-4});renderAll();save();done()}}
+    else if(hung){
+      $$("#modal [data-deal]").forEach(btn=>btn.onclick=()=>{
+        const upto=+btn.dataset.deal;closeModal();
+        const partners=CA.combo.slice(0,upto+1);
+        E.settleElectionWin(S,mine);E.setHouse(S,R);
+        S.flags.minority=false;
+        S.flags.coalitionSeats=partners.reduce((a2,p)=>a2+p.seats,0);
+        S.flags.coalitionWith=partners.map(p=>p.n.replace(" (you)","")).join(" + ");
+        partners.forEach(p=>{if(DEALS[p.key])E.applyEffects(S,{promise:DEALS[p.key]});
+          if(p.key==="snp")E.applyEffects(S,{scot:5});});
+        E.applyEffects(S,{unity:-6});
+        ach("kingmaker","Kingmaker — governed by deal");
+        toast("<b>COALITION</b> · with "+S.flags.coalitionWith);
+        renderAll();save();done()});
+      const em=$("#elm");if(em)em.onclick=()=>{closeModal();E.settleElectionWin(S,mine);E.setHouse(S,R);S.flags.minority=true;
+        delete S.flags.coalitionSeats;delete S.flags.coalitionWith;
+        E.applyEffects(S,{unity:-4});renderAll();save();done()}}
     else{$("#elx").onclick=()=>{closeModal();
-      const out=E.settleElectionLoss(S);
+      const out=E.settleElectionLoss(S);E.setHouse(S,R);
       if(out==="deposed"){endGame("deposed");return}
       renderAll();save();done()}}
   };

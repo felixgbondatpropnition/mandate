@@ -42,6 +42,11 @@ const PARTIES={
    rival:"lab",blurb:"The flooded summer changed everything. You promised a different civilisation; the Treasury would settle for a solvent one.",
    oppBlurb:"Thirty-two seats, one planet. Turn weather into votes without becoming the people who shout at boilers."},
 
+ res:{name:"Restore Britain",col:"#8e3b46",ideal:{e:1.1,s:2.3},aiOnly:true,
+   govSeats:328,oppSeats:8,unity:50,trust:45,app:42,
+   factions:[["The Faithful",.5,{e:.8,s:2.4},"—"],["The Old Guard",.5,{e:1.4,s:2.1},"—"]],
+   region:{north:1.0,mid:1.1,lon:.5,south:1.05,scot:.4,wales:.95},
+   rival:"ref",blurb:null,oppBlurb:null},
  snp:{name:"SNP",col:"#e8d44d",aiOnly:true,ideal:{e:-.9,s:-.5},
    govSeats:0,oppSeats:48,unity:60,trust:50,app:46,
    factions:[["Fundamentalists",.35,{e:-.9,s:-.6},"Effie Brodie"],["Gradualists",.40,{e:-.8,s:-.4},"Alasdair Rennie"],["The New Guard",.25,{e:-1.1,s:-.7},"Zara Aziz"]],
