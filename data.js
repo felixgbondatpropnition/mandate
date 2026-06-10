@@ -47,7 +47,7 @@ const PARTIES={
    factions:[["The Faithful",.4,{e:.8,s:2.4},"Rev. Marcus Bell"],["The Old Guard",.3,{e:1.4,s:2.1},"Esther McVey"],["The Broadcast Wing",.3,{e:1.2,s:1.9},"Ben Habib"]],
    region:{north:1.0,mid:1.1,lon:.5,south:1.05,scot:.4,wales:.95},
    rival:"ref",blurb:"Faith, flag and the 1950s, restored by Tuesday. Governing the present is going to come as a shock.",
-   oppBlurb:"Twelve seats, four million views a week, and a theory of Britain that fits on a church noticeboard. The algorithm loves you. Westminster is about to find out if the country does.",
+   oppBlurb:"One seat — Great Yarmouth — and four million views a week: the biggest digital army in British politics, and a theory of the country that fits on a church noticeboard. Westminster is about to find out if the algorithm translates into ballots.",
    govSeats:328,oppSeats:1},
  snp:{name:"SNP",col:"#e8d44d",aiOnly:true,ideal:{e:-.9,s:-.5},
    govSeats:0,oppSeats:48,unity:60,trust:50,app:46,
