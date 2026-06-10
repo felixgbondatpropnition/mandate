@@ -689,74 +689,66 @@ function renderMedia(){
 function renderHub(){
   const gov=S.meta.phase==="government";
   const rank=[...E.POLL_PARTIES].sort((a,b)=>S.polls[b]-S.polls[a]).indexOf(S.meta.party)+1;
-  // the Westminster village, looked down upon
   const rooms=[
-   // No. 10
-   ["office",gov?"PM'S OFFICE":"LOTO'S OFFICE",40,66,210,78,"approval "+Math.round(S.pols.approval)+"%"],
-   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",266,66,210,78,"unity "+Math.round(S.pols.unity)],
-   ["media","PRESS OFFICE",40,156,210,76,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
-   ["diary","THE DIARY",266,156,210,76,"skip ahead"],
-   // No. 11
-   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",534,66,184,78,"deficit "+fmt1(S.fiscalDeficit)+"%"],
-   ["econlab","ECONOMY LAB",734,66,184,78,fmt1(S.econ.infl)+"% / "+fmt1(S.econ.rates)+"%"],
-   // Palace of Westminster
-   ["commons","THE COMMONS",40,386,250,86,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
-   ["lords",(S.policy&&S.policy.lordselect)?"THE SENATE":"THE LORDS",306,386,250,86,(S.policy&&S.policy.lordselect)?"elected":((S.lords&&S.lords.peers)||0)+" peers"],
-   ["whips","WHIPS' OFFICE",40,484,250,72,"letters at "+Math.max(0,Math.round(S.pols.unity-32))],
-   // COBRA
-   ["world","SITUATION ROOM",630,386,146,86,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
-   ["intel","INTELLIGENCE",790,386,146,86,"live ops"],
-   // Party HQ
-   ["campaign","CAMPAIGN HQ",630,510,306,50,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
+   ["office",gov?"PM'S OFFICE":"LOTO'S OFFICE",40,98,212,78,"approval "+Math.round(S.pols.approval)+"%"],
+   ["cabinet",gov?"CABINET ROOM":"SHADOW CABINET",266,98,212,78,"unity "+Math.round(S.pols.unity)],
+   ["media","PRESS OFFICE",40,188,212,72,"press "+(S.mediaIndex>=0?"+":"")+Math.round(S.mediaIndex)],
+   ["diary","THE DIARY",266,188,212,72,"skip ahead"],
+   ["treasury",gov?"HM TREASURY":"SHADOW TREASURY",534,98,386,76,"deficit "+fmt1(S.fiscalDeficit)+"%"],
+   ["econlab","ECONOMY LAB",534,184,386,76,"CPI "+fmt1(S.econ.infl)+"% · rate "+fmt1(S.econ.rates)+"%"],
+   ["commons","THE COMMONS",40,406,252,88,gov?(S.flags.minority?"no majority":"majority "+S.majority):S.party.seats+" seats"],
+   ["lords",(S.policy&&S.policy.lordselect)?"THE SENATE":"THE LORDS",308,406,252,88,(S.policy&&S.policy.lordselect)?"elected":((S.lords&&S.lords.peers)||0)+" peers"],
+   ["whips","WHIPS' OFFICE",40,504,252,80,"letters at "+Math.max(0,Math.round(S.pols.unity-32))],
+   ["world","SITUATION ROOM",624,406,148,88,S.world.war?"⚔ AT WAR":"standing "+Math.round(S.world.standing)],
+   ["intel","INTELLIGENCE",786,406,134,88,"live ops"],
+   ["campaign","CAMPAIGN HQ",624,532,296,52,"polls "+Math.round(S.pols.pollMe)+"% · #"+rank],
   ];
   const PULSE={world:!!(S.world.war||(S.world.doom||0)>0),whips:S.pols.unity<40,media:S.mediaIndex<-3,
     econlab:S.econ.trust<35||S.econ.infl>6,treasury:S.fiscalDeficit>5};
-  const flag=(x,y,s)=>`<use href="#ujack" x="${x}" y="${y}" ${s?`transform="scale(${s})" transform-origin="${x} ${y}"`:""}/>`;
-  const bunting=[80,190,300,410,520,640,760,870].map((x,i)=>flag(x,300+(i%2?4:0),0.8)).join("");
-  $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">${gov?"THE VILLAGE — Whitehall from above":"THE VILLAGE — opposition footing"} · ${E.dateStr(S)}</div>
-   <svg id="hubmap" viewBox="0 0 960 600">
-    <defs><g id="ujack">
-      <rect width="26" height="14" fill="#012169"/>
-      <path d="M0,0 26,14 M26,0 0,14" stroke="#fff" stroke-width="3.4"/>
-      <path d="M0,0 26,14 M26,0 0,14" stroke="#C8102E" stroke-width="1.4"/>
-      <rect x="10.4" width="5.2" height="14" fill="#fff"/><rect y="4.6" width="26" height="4.8" fill="#fff"/>
-      <rect x="11.7" width="2.6" height="14" fill="#C8102E"/><rect y="5.8" width="26" height="2.4" fill="#C8102E"/>
-    </g></defs>
-    <!-- garden behind No.10 -->
-    <rect x="24" y="18" width="470" height="26" class="hedge"/><text x="259" y="35" class="bldglbl dim">THE GARDEN</text>
-    <!-- No. 10 -->
-    <rect x="24" y="50" width="470" height="196" class="bldg"/>
-    <text x="38" y="63" class="bldglbl">NO. 10</text>${flag(458,54)}
-    <!-- No. 11 -->
-    <rect x="518" y="50" width="418" height="196" class="bldg"/>
-    <text x="532" y="63" class="bldglbl">NO. 11 — HM TREASURY</text>${flag(900,54)}
-    <!-- the famous door -->
-    <path d="M236,246 a14,14 0 0 1 28,0 z" class="doorarch"/>
-    <rect x="238" y="246" width="24" height="26" class="door10"/>
-    <text x="250" y="263" class="doorten">10</text>
-    ${flag(206,252)}${flag(268,252)}
+  const rib=(x,y,w)=>`<rect x="${x}" y="${y}" width="${w}" height="2.5" fill="#C8102E"/><rect x="${x}" y="${y+2.5}" width="${w}" height="2.5" fill="#f4f6f9"/><rect x="${x}" y="${y+5}" width="${w}" height="2.5" fill="#1d3f8f"/>`;
+  const bldg=(x,y,w,h,label,flag)=>`
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" class="bldg" filter="url(#soft)"/>
+    <rect x="${x}" y="${y}" width="${w}" height="26" rx="5" class="bhead"/>
+    <text x="${x+14}" y="${y+17}" class="bldglbl">${label}</text>
+    ${rib(x+w-86,y+11,68)}
+    ${flag?`<line x1="${x+w-24}" y1="${y-26}" x2="${x+w-24}" y2="${y}" class="pole"/><use href="#ujack" x="${x+w-24}" y="${y-26}"/>`:""}`;
+  $("#tab-hub").innerHTML=`<div class="lbl" style="margin-top:10px">THE VILLAGE — Whitehall from above · ${E.dateStr(S)}</div>
+   <svg id="hubmap" viewBox="0 0 960 620">
+    <defs>
+      <g id="ujack"><rect width="32" height="17" rx="1.5" fill="#1d3f8f" stroke="#0a1322" stroke-width=".6"/>
+        <path d="M0,0 32,17 M32,0 0,17" stroke="#f4f6f9" stroke-width="4" clip-path="inset(0)"/>
+        <path d="M0,0 32,17 M32,0 0,17" stroke="#C8102E" stroke-width="1.6"/>
+        <rect x="12.8" width="6.4" height="17" fill="#f4f6f9"/><rect y="5.6" width="32" height="5.8" fill="#f4f6f9"/>
+        <rect x="14.4" width="3.2" height="17" fill="#C8102E"/><rect y="7" width="32" height="3" fill="#C8102E"/></g>
+      <filter id="soft" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.55"/></filter>
+      <radialGradient id="lampglow"><stop offset="0%" stop-color="#ffd98a" stop-opacity=".9"/><stop offset="100%" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
+    </defs>
+    <rect x="24" y="22" width="470" height="34" rx="4" class="hedge"/>
+    ${[70,140,210,290,360,430].map(x=>`<circle cx="${x}" cy="39" r="8" class="tree"/>`).join("")}
+    <text x="468" y="43" text-anchor="end" class="gardenlbl">THE GARDEN</text>
+    ${bldg(24,66,470,206,"NO. 10 DOWNING STREET",true)}
+    ${bldg(518,66,418,206,"NO. 11 — THE EXCHEQUER",false)}
     <!-- the street -->
-    <rect x="0" y="282" width="960" height="44" class="street"/>
-    <line x1="0" y1="304" x2="960" y2="304" class="streetline"/>
-    <text x="40" y="299" class="streetlbl">DOWNING STREET</text>
-    <text x="760" y="321" class="streetlbl">WHITEHALL · SW1</text>
-    ${bunting}
-    <!-- Palace of Westminster -->
-    <rect x="24" y="350" width="560" height="216" class="bldg"/>
-    <text x="38" y="368" class="bldglbl">PALACE OF WESTMINSTER</text>${flag(548,356)}
-    <!-- COBRA -->
-    <rect x="608" y="350" width="328" height="132" class="bldg cobra"/>
-    <text x="622" y="368" class="bldglbl">COBRA — BELOW WHITEHALL</text>
-    <!-- Party HQ -->
-    <rect x="608" y="498" width="328" height="68" class="bldg"/>
-    <text x="622" y="512" class="bldglbl">${PARTIES[S.meta.party].name.toUpperCase()} HQ</text>${flag(900,502)}
+    <rect x="0" y="296" width="960" height="64" class="street"/>
+    <line x1="0" y1="301" x2="960" y2="301" class="kerb"/><line x1="0" y1="355" x2="960" y2="355" class="kerb"/>
+    <line x1="0" y1="328" x2="960" y2="328" class="streetline"/>
+    <text x="480" y="332" text-anchor="middle" class="streetlbl">D O W N I N G&nbsp;&nbsp;S T R E E T</text>
+    <line x1="120" y1="296" x2="120" y2="282" class="pole"/><circle cx="120" cy="279" r="7" fill="url(#lampglow)"/><circle cx="120" cy="279" r="2.6" class="lampbulb"/>
+    <line x1="840" y1="296" x2="840" y2="282" class="pole"/><circle cx="840" cy="279" r="7" fill="url(#lampglow)"/><circle cx="840" cy="279" r="2.6" class="lampbulb"/>
+    <!-- the door -->
+    <rect x="228" y="258" width="44" height="38" rx="3" class="doorsurround" filter="url(#soft)"/>
+    <path d="M236,276 a14,14 0 0 1 28,0" class="fanlight"/>
+    ${[-10,-3.3,3.3,10].map(a=>`<line x1="250" y1="276" x2="${(250+13*Math.sin(a/57.3)).toFixed(1)}" y2="${(276-13*Math.cos(a/57.3)).toFixed(1)}" class="fanspoke"/>`).join("")}
+    <rect x="238" y="276" width="24" height="20" class="door10"/>
+    <circle cx="250" cy="252" r="8" fill="url(#lampglow)"/><circle cx="250" cy="252" r="3" class="lampbulb"/>
+    <text x="250" y="290" class="doorten">10</text>
+    ${bldg(24,380,560,222,"PALACE OF WESTMINSTER",true)}
+    ${bldg(608,380,328,132,"COBRA — BELOW WHITEHALL",false)}
+    ${bldg(608,524,328,72,PARTIES[S.meta.party].name.toUpperCase()+" HQ",false)}
     ${rooms.map(r=>`<g class="room${r[0]==="world"&&S.world.war?" warroom":""}${PULSE[r[0]]?" pulse":""}" data-t="${r[0]}">
-      <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="3"/>
+      <rect x="${r[2]}" y="${r[3]}" width="${r[4]}" height="${r[5]}" rx="4"/>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2-7}" class="rmname">${r[1]}</text>
       <text x="${r[2]+r[4]/2}" y="${r[3]+r[5]/2+14}" class="rmstat">${r[6]}</text></g>`).join("")}
-    <!-- cabinet table -->
-    <ellipse cx="371" cy="98" rx="62" ry="10" class="cabtable"/>
-    ${Array.from({length:10},(_,i)=>`<circle cx="${318+i*12}" cy="${i%2?86:110}" r="1.8" class="cabchair"/>`).join("")}
    </svg>
    <div class="hubstrip"><span class="lbl gold">Today's front page</span> <b>${S.paper.head}</b></div>`;
   $$("#hubmap .room").forEach(g=>g.onclick=()=>{tab=g.dataset.t;renderAll()});

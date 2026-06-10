@@ -400,3 +400,24 @@ footer span{font-family:var(--sans);font-size:9.5px;letter-spacing:.16em;text-tr
 .room.pulse rect{animation:roomPulse 1.5s infinite}
 .room{cursor:pointer}
 .room:hover rect{stroke:var(--party);stroke-width:1.6}
+
+/* ===== v10.1: the village, done properly ===== */
+.bldg{fill:#111b2d;stroke:#27344e;stroke-width:1.2}
+.bhead{fill:#0c1422;stroke:none}
+.bldglbl{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.24em;fill:#9fb0cc;text-anchor:start}
+.hedge{fill:#0f2418;stroke:#1c3a27}
+.tree{fill:#163420;stroke:#234d31;stroke-width:1}
+.gardenlbl{font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.3em;fill:#3d5c49}
+.street{fill:#0d1320}
+.kerb{stroke:#222d42;stroke-width:2}
+.streetline{stroke:rgba(233,236,242,.22);stroke-dasharray:18 12;stroke-width:2}
+.streetlbl{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.5em;fill:rgba(233,236,242,.34)}
+.pole{stroke:#3a455c;stroke-width:2}
+.lampbulb{fill:#ffd98a}
+.doorsurround{fill:#1a2334;stroke:#303c58}
+.fanlight{fill:#0a1322;stroke:#4a5878;stroke-width:1}
+.fanspoke{stroke:#4a5878;stroke-width:.8}
+.door10{fill:#05070c;stroke:#39455f;stroke-width:1.2}
+.doorten{font-family:var(--sans);font-size:10.5px;font-weight:700;fill:#f4f6f9;text-anchor:middle}
+#hubmap .room rect{fill:#18233d;stroke:#2e3d60;stroke-width:1.2;transition:filter .15s}
+#hubmap .room:hover rect{stroke:var(--party);filter:brightness(1.25)}
