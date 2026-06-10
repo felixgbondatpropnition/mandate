@@ -12,13 +12,13 @@ const D_LN=["Okafor","MacLeod","Pemberton","Shah","Whitfield","O'Donnell","Hargr
 /* ---------- parties ---------- */
 const PARTIES={
  lab:{name:"Labour",col:"#d04a44",ideal:{e:-1.1,s:-0.3},
-   govSeats:404,oppSeats:404,unity:58,trust:55,app:46,
+   govSeats:411,oppSeats:411,unity:58,trust:55,app:46,
    factions:[["The Left",.30,{e:-1.9,s:-.8},"John McDonnell"],["Soft Left",.40,{e:-1.1,s:-.4},"Lucy Powell"],["Modernisers",.30,{e:-.3,s:.1},"Pat McFadden"]],
    region:{north:1.25,mid:1.05,lon:1.2,south:.75,scot:.9,wales:1.2},
    rival:"con",blurb:"The people's party — and the people's expectations. The unions kept the receipts.",
    oppBlurb:"Out of power, in a queue of grievances. Win back the towns or haunt the seminar rooms forever."},
  con:{name:"Conservative",col:"#2a64b8",ideal:{e:1.1,s:.8},
-   govSeats:349,oppSeats:120,unity:52,trust:62,app:44,
+   govSeats:349,oppSeats:121,unity:52,trust:62,app:44,
    factions:[["One Nation",.35,{e:.4,s:-.1},"Tom Tugendhat"],["Thatcherites",.40,{e:1.7,s:.7},"Liz Truss"],["National Right",.25,{e:1.2,s:1.8},"Suella Braverman"]],
    region:{north:.8,mid:1.05,lon:.85,south:1.35,scot:.6,wales:.8},
    rival:"lab",blurb:"The natural party of government, currently checking the natural order is still on.",
@@ -30,7 +30,7 @@ const PARTIES={
    rival:"con",blurb:"The polite revolution actually happened. Nobody is more surprised than the spreadsheet.",
    oppBlurb:"Seventy-eight seats and a dream: be the grown-up in a room that keeps setting itself on fire."},
  ref:{name:"Reform UK",col:"#36c2d9",ideal:{e:1.4,s:1.6},
-   govSeats:336,oppSeats:12,unity:44,trust:42,app:45,
+   govSeats:336,oppSeats:4,unity:44,trust:42,app:45,
    factions:[["The Leader's Circle",.40,{e:1.2,s:1.6},"Richard Tice"],["Free Marketeers",.30,{e:2,s:.6},"Zia Yusuf"],["Red Wall Populists",.30,{e:.1,s:1.9},"Lee Anderson"]],
    region:{north:1.2,mid:1.15,lon:.7,south:1.0,scot:.5,wales:1.0},
    rival:"lab",blurb:"The insurgency won. Half your MPs have never read standing orders; the other half wrote new ones in crayon.",
@@ -857,18 +857,20 @@ const REAL_POLS={
 
 /* ---------- REALITY BASELINE — Britain, July 2026 ----------
    Seats: 2024 GE adjusted for defections/by-elections. Polling: current averages. */
-const REAL_POLLS_NOW={ref:28,lab:19,con:16,lib:14,grn:11,res:2,snp:3};
+const REAL_POLLS_NOW={ref:25,con:19,lab:19,grn:14,lib:12,snp:3,res:3}; // YouGov 7-8 Jun 2026
 const REAL_HOUSE={
+ // EXACT 2024 general election results, with one change: Great Yarmouth
+ // (Reform, 2024) now sits as Restore Britain. Everything else as counted.
  order:["lab","con","lib","ref","grn","snp","res"],
- seats:{lab:404,con:120,lib:72,ref:12,grn:4,snp:9,res:1,oth:28},
- regions:{ // [lab,con,lib,ref,grn,snp,res,oth] per region — sums match region seats
-  scot:[36,5,6,1,0,9,0,0],
-  north:[96,12,4,6,1,0,0,5],
-  mid:[74,18,3,3,1,0,0,1],
-  wales:[25,1,1,1,0,0,0,4],
-  lon:[59,9,6,0,1,0,0,0],
-  south:[114,75,52,1,1,0,1,0]},
- othLabel:"NI, Plaid & others"};
+ seats:{lab:411,con:121,lib:72,ref:4,grn:4,snp:9,res:1,oth:28},
+ regions:{ // [lab,con,lib,ref,grn,snp,res,oth] — every region reconciles
+  scot:[37,5,6,0,0,9,0,0],
+  north:[104,12,5,0,0,0,0,3],
+  mid:[65,26,4,2,1,0,0,2],
+  wales:[27,0,1,0,0,0,0,4],
+  lon:[59,9,6,0,0,0,0,1],
+  south:[119,69,50,2,3,0,1,0]},
+ othLabel:"SF, DUP, Plaid & others"};
 const REAL_GOV={party:"lab",pm:"Keir Starmer",approval:30,fatigue:2.2,monthsIn:24};
 const MONTHS_TO_GE=38; // fixed-term horizon: must go to the country by mid-2029
 

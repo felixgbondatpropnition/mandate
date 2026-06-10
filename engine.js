@@ -139,7 +139,7 @@ function initPolls(S){
 }
 function tickPolls(S){
   const mine=S.meta.party;
-  const base={lab:20,con:16,lib:13,ref:24,grn:10};
+  const base={lab:19,con:18,lib:12,ref:23,grn:13};
   const tgt={};
   if(S.meta.phase==="government"){
     tgt[mine]=clamp(24+0.42*S.pols.approval+stanceBonus(S),16,50);
@@ -155,7 +155,7 @@ function tickPolls(S){
   // Restore Britain feeds on Reform's flank and migration anger
   const refNow=S.polls.ref||14;
   const shift=clamp((refNow-13)*0.25,0,5)+(S.svc.mig>600?1.2:0)+(S.flags.migSalient?0.8:0);
-  tgt.res=clamp(2.5+shift,2,13);
+  tgt.res=clamp(3+shift,2,13);
   if(tgt.ref!==undefined)tgt.ref=clamp(tgt.ref-shift*0.7,6,50);
   tgt.snp=clamp(3+(S.world.scot-42)/25,1.5,6);
   for(const k of POLL_PARTIES)S.polls[k]=clamp(S.polls[k]+0.22*((tgt[k]??S.polls[k])-S.polls[k])+(S.rng()-.5)*0.9,1,55);

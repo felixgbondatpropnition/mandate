@@ -40,10 +40,10 @@ for(let i=0;i<30;i++){
 
 // baseline sanity before the fleet
 {const SB=E.newGame({party:'lab',bg:'lifer',scenario:'real',difficulty:'standard',seed:'base',name:'B'});
- if(SB.party.seats!==404||SB.meta.phase!=="government")throw new Error("Labour baseline wrong");
+ if(SB.party.seats!==411||SB.meta.phase!=="government")throw new Error("Labour baseline wrong");
  const SR=E.newGame({party:'ref',bg:'lifer',scenario:'real',difficulty:'standard',seed:'base2',name:'B'});
- if(SR.party.seats!==12||SR.opp.gov.pm!=="Keir Starmer"||SR.opp.electionDue!==38)throw new Error("Reform baseline wrong");
- if(Math.round(SR.polls.ref)<26)throw new Error("Reform polling baseline wrong");
+ if(SR.party.seats!==4||SR.opp.gov.pm!=="Keir Starmer"||SR.opp.electionDue!==38)throw new Error("Reform baseline wrong");
+ if(Math.round(SR.polls.ref)<23||Math.round(SR.polls.grn)<12)throw new Error("polling baseline off YouGov");
  if(E.pmqPoolCount()<100)throw new Error("PMQ pool under 100");
  const labels=new Set();for(let i=0;i<10;i++){E.tick(SR);E.pmqsTopics(SR).forEach(x=>labels.add(x.label))}
  if(labels.size<12)throw new Error("PMQ topics not rotating: "+labels.size);}

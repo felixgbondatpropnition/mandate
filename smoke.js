@@ -51,10 +51,10 @@ function click(el, what) {
     const pTxt = $("#pickparty").textContent;
     assert(!/Green/.test(pTxt), "Green must not be pickable");
     assert(!/SNP\b/.test(pTxt), "SNP must not be pickable");
-    assert(/404 seats/.test(pTxt) && /majority 158/.test(pTxt), "Labour shows the real 404 / majority 158");
-    assert(/12 seats/.test(pTxt), "Reform shows its real 12 seats");
+    assert(/411 seats/.test(pTxt) && /majority 172/.test(pTxt), "Labour shows the real 411 / majority 172");
+    assert(/4 seats/.test(pTxt), "Reform shows its real 4 seats (Yarmouth now Restore)");
     assert(/1 seat ·/.test(pTxt), "Restore shows its single real seat");
-    assert(/polling 28%/.test(pTxt), "Reform polling matches reality");
+    assert(/polling 25%/.test(pTxt), "Reform polling matches YouGov");
     click($$("#pickparty .opt")[0], "party (Labour — the real government)");
     await sleep(260);
     const bTxt = $("#pickbg").textContent;
